@@ -1,0 +1,7 @@
+category Cat {
+  asset A1 {
+    & a
+      ->
+        user info: "Info"
+  }
+}

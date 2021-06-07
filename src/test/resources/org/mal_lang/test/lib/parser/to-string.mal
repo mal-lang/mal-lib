@@ -1,0 +1,28 @@
+#hej: "hej"
+
+         category CAT
+           user info: "meta" {
+            asset A1 extends A1 {
+            }
+            abstract asset A2
+              user info: "info" {
+              & at
+                <- a
+                -> a
+              | at2 [a]
+                user info: "at2"
+                +> a, b
+              let b = a
+            }
+         }
+
+  # hej : "hej"
+
+  associations {
+    A1 [a] 0..1 <-- L --> 1..* [b] A2
+       user info: "Info"
+    A2 [b] 0..* <-- L --> *    [a] A1
+       user info: "info"
+       user info: "info2"
+    A1 [a] 1    <-- L --> 1..1 [b] A2
+  }

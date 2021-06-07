@@ -1,0 +1,886 @@
+{
+  "formatVersion": "1.0.0",
+  "defines": {
+    "id": "org.mal-lang.test",
+    "version": "1.0.0"
+  },
+  "categories": [
+    {
+      "name": "Category1",
+      "meta": {}
+    },
+    {
+      "name": "_Category2",
+      "meta": {
+        "meta": "line"
+      }
+    },
+    {
+      "name": "Category_3",
+      "meta": {
+        "meta1": "\"line\"",
+        "meta2": "line1\nline2"
+      }
+    },
+    {
+      "name": "CombinedMeta",
+      "meta": {
+        "meta1": "\"line\"",
+        "meta2": "line1\nline2"
+      }
+    }
+  ],
+  "assets": [
+    {
+      "name": "Asset1",
+      "meta": {},
+      "category": "_Category2",
+      "isAbstract": true,
+      "superAsset": null,
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "_Asset2",
+      "meta": {
+        "meta": "line"
+      },
+      "category": "_Category2",
+      "isAbstract": true,
+      "superAsset": null,
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset_3",
+      "meta": {
+        "meta1": "\"line\"",
+        "meta2": "line1\nline2"
+      },
+      "category": "_Category2",
+      "isAbstract": true,
+      "superAsset": null,
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset4",
+      "meta": {},
+      "category": "_Category2",
+      "isAbstract": true,
+      "superAsset": "Asset1",
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "_Asset5",
+      "meta": {
+        "meta": "line"
+      },
+      "category": "_Category2",
+      "isAbstract": true,
+      "superAsset": "_Asset2",
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset_6",
+      "meta": {
+        "meta1": "\"line\"",
+        "meta2": "line1\nline2"
+      },
+      "category": "_Category2",
+      "isAbstract": true,
+      "superAsset": "Asset_3",
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset7",
+      "meta": {},
+      "category": "_Category2",
+      "isAbstract": false,
+      "superAsset": null,
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "_Asset8",
+      "meta": {
+        "meta": "line"
+      },
+      "category": "_Category2",
+      "isAbstract": false,
+      "superAsset": null,
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset_9",
+      "meta": {
+        "meta1": "\"line\"",
+        "meta2": "line1\nline2"
+      },
+      "category": "_Category2",
+      "isAbstract": false,
+      "superAsset": null,
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset10",
+      "meta": {},
+      "category": "_Category2",
+      "isAbstract": false,
+      "superAsset": "Asset4",
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "_Asset11",
+      "meta": {
+        "meta": "line"
+      },
+      "category": "_Category2",
+      "isAbstract": false,
+      "superAsset": "_Asset5",
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset_12",
+      "meta": {
+        "meta1": "\"line\"",
+        "meta2": "line1\nline2"
+      },
+      "category": "_Category2",
+      "isAbstract": false,
+      "superAsset": "Asset_6",
+      "variables": [],
+      "attackSteps": []
+    },
+    {
+      "name": "Asset",
+      "meta": {},
+      "category": "Category_3",
+      "isAbstract": false,
+      "superAsset": null,
+      "variables": [
+        {
+          "name": "var1",
+          "stepExpression": {
+            "type": "field",
+            "name": "asset1s"
+          }
+        },
+        {
+          "name": "var2",
+          "stepExpression": {
+            "type": "subType",
+            "subType": "Asset4",
+            "stepExpression": {
+              "type": "variable",
+              "name": "var1"
+            }
+          }
+        },
+        {
+          "name": "var3",
+          "stepExpression": {
+            "type": "difference",
+            "lhs": {
+              "type": "intersection",
+              "lhs": {
+                "type": "union",
+                "lhs": {
+                  "type": "variable",
+                  "name": "var1"
+                },
+                "rhs": {
+                  "type": "variable",
+                  "name": "var2"
+                }
+              },
+              "rhs": {
+                "type": "collect",
+                "lhs": {
+                  "type": "variable",
+                  "name": "var1"
+                },
+                "rhs": {
+                  "type": "field",
+                  "name": "asset10s"
+                }
+              }
+            },
+            "rhs": {
+              "type": "collect",
+              "lhs": {
+                "type": "transitive",
+                "stepExpression": {
+                  "type": "field",
+                  "name": "subAssets"
+                }
+              },
+              "rhs": {
+                "type": "variable",
+                "name": "var1"
+              }
+            }
+          }
+        }
+      ],
+      "attackSteps": [
+        {
+          "name": "noSteps",
+          "meta": {},
+          "type": "or",
+          "tags": [],
+          "risk": null,
+          "ttc": null,
+          "requires": null,
+          "reaches": null
+        },
+        {
+          "name": "or",
+          "meta": {},
+          "type": "or",
+          "tags": [
+            "tag"
+          ],
+          "risk": {
+            "isConfidentiality": true,
+            "isIntegrity": false,
+            "isAvailability": false
+          },
+          "ttc": {
+            "type": "function",
+            "name": "Zero",
+            "arguments": []
+          },
+          "requires": null,
+          "reaches": {
+            "overrides": true,
+            "stepExpressions": [
+              {
+                "type": "collect",
+                "lhs": {
+                  "type": "transitive",
+                  "stepExpression": {
+                    "type": "field",
+                    "name": "subAssets"
+                  }
+                },
+                "rhs": {
+                  "type": "attackStep",
+                  "name": "and"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "and",
+          "meta": {},
+          "type": "and",
+          "tags": [
+            "tag1",
+            "tag2"
+          ],
+          "risk": {
+            "isConfidentiality": true,
+            "isIntegrity": true,
+            "isAvailability": true
+          },
+          "ttc": {
+            "type": "function",
+            "name": "Infinity",
+            "arguments": []
+          },
+          "requires": null,
+          "reaches": {
+            "overrides": true,
+            "stepExpressions": [
+              {
+                "type": "collect",
+                "lhs": {
+                  "type": "collect",
+                  "lhs": {
+                    "type": "variable",
+                    "name": "var1"
+                  },
+                  "rhs": {
+                    "type": "field",
+                    "name": "_asset"
+                  }
+                },
+                "rhs": {
+                  "type": "attackStep",
+                  "name": "noSteps"
+                }
+              },
+              {
+                "type": "collect",
+                "lhs": {
+                  "type": "collect",
+                  "lhs": {
+                    "type": "collect",
+                    "lhs": {
+                      "type": "transitive",
+                      "stepExpression": {
+                        "type": "field",
+                        "name": "subAssets"
+                      }
+                    },
+                    "rhs": {
+                      "type": "variable",
+                      "name": "var2"
+                    }
+                  },
+                  "rhs": {
+                    "type": "field",
+                    "name": "_asset"
+                  }
+                },
+                "rhs": {
+                  "type": "attackStep",
+                  "name": "noSteps"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "defense",
+          "meta": {},
+          "type": "defense",
+          "tags": [],
+          "risk": null,
+          "ttc": null,
+          "requires": null,
+          "reaches": {
+            "overrides": true,
+            "stepExpressions": [
+              {
+                "type": "collect",
+                "lhs": {
+                  "type": "collect",
+                  "lhs": {
+                    "type": "field",
+                    "name": "asset8s"
+                  },
+                  "rhs": {
+                    "type": "field",
+                    "name": "_asset"
+                  }
+                },
+                "rhs": {
+                  "type": "attackStep",
+                  "name": "noSteps"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "exist",
+          "meta": {},
+          "type": "exist",
+          "tags": [],
+          "risk": null,
+          "ttc": null,
+          "requires": {
+            "overrides": true,
+            "stepExpressions": [
+              {
+                "type": "union",
+                "lhs": {
+                  "type": "field",
+                  "name": "asset1s"
+                },
+                "rhs": {
+                  "type": "collect",
+                  "lhs": {
+                    "type": "subType",
+                    "subType": "Asset4",
+                    "stepExpression": {
+                      "type": "field",
+                      "name": "asset1s"
+                    }
+                  },
+                  "rhs": {
+                    "type": "field",
+                    "name": "asset10s"
+                  }
+                }
+              }
+            ]
+          },
+          "reaches": {
+            "overrides": true,
+            "stepExpressions": [
+              {
+                "type": "collect",
+                "lhs": {
+                  "type": "collect",
+                  "lhs": {
+                    "type": "field",
+                    "name": "asset7s"
+                  },
+                  "rhs": {
+                    "type": "field",
+                    "name": "_asset"
+                  }
+                },
+                "rhs": {
+                  "type": "attackStep",
+                  "name": "noSteps"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "notExist",
+          "meta": {},
+          "type": "notExist",
+          "tags": [],
+          "risk": null,
+          "ttc": null,
+          "requires": {
+            "overrides": true,
+            "stepExpressions": [
+              {
+                "type": "collect",
+                "lhs": {
+                  "type": "intersection",
+                  "lhs": {
+                    "type": "field",
+                    "name": "asset1s"
+                  },
+                  "rhs": {
+                    "type": "subType",
+                    "subType": "Asset4",
+                    "stepExpression": {
+                      "type": "field",
+                      "name": "asset1s"
+                    }
+                  }
+                },
+                "rhs": {
+                  "type": "field",
+                  "name": "asset10s"
+                }
+              },
+              {
+                "type": "difference",
+                "lhs": {
+                  "type": "variable",
+                  "name": "var1"
+                },
+                "rhs": {
+                  "type": "variable",
+                  "name": "var2"
+                }
+              }
+            ]
+          },
+          "reaches": null
+        }
+      ]
+    },
+    {
+      "name": "SubAsset",
+      "meta": {},
+      "category": "Category_3",
+      "isAbstract": false,
+      "superAsset": "Asset",
+      "variables": [],
+      "attackSteps": [
+        {
+          "name": "or",
+          "meta": {
+            "meta": "string"
+          },
+          "type": "or",
+          "tags": [],
+          "risk": {
+            "isConfidentiality": false,
+            "isIntegrity": false,
+            "isAvailability": false
+          },
+          "ttc": null,
+          "requires": null,
+          "reaches": {
+            "overrides": false,
+            "stepExpressions": [
+              {
+                "type": "attackStep",
+                "name": "defense"
+              }
+            ]
+          }
+        },
+        {
+          "name": "and",
+          "meta": {},
+          "type": "and",
+          "tags": [
+            "tag3"
+          ],
+          "risk": null,
+          "ttc": null,
+          "requires": null,
+          "reaches": {
+            "overrides": true,
+            "stepExpressions": [
+              {
+                "type": "attackStep",
+                "name": "noSteps"
+              }
+            ]
+          }
+        },
+        {
+          "name": "defense",
+          "meta": {},
+          "type": "defense",
+          "tags": [],
+          "risk": null,
+          "ttc": {
+            "type": "function",
+            "name": "Enabled",
+            "arguments": []
+          },
+          "requires": null,
+          "reaches": null
+        },
+        {
+          "name": "defense2",
+          "meta": {},
+          "type": "defense",
+          "tags": [],
+          "risk": null,
+          "ttc": {
+            "type": "function",
+            "name": "Disabled",
+            "arguments": []
+          },
+          "requires": null,
+          "reaches": null
+        },
+        {
+          "name": "defense3",
+          "meta": {},
+          "type": "defense",
+          "tags": [],
+          "risk": null,
+          "ttc": {
+            "type": "function",
+            "name": "Bernoulli",
+            "arguments": [
+              0.4
+            ]
+          },
+          "requires": null,
+          "reaches": null
+        },
+        {
+          "name": "a1",
+          "meta": {},
+          "type": "or",
+          "tags": [],
+          "risk": null,
+          "ttc": {
+            "type": "subtraction",
+            "lhs": {
+              "type": "addition",
+              "lhs": {
+                "type": "addition",
+                "lhs": {
+                  "type": "function",
+                  "name": "EasyAndCertain",
+                  "arguments": []
+                },
+                "rhs": {
+                  "type": "multiplication",
+                  "lhs": {
+                    "type": "function",
+                    "name": "EasyAndUncertain",
+                    "arguments": []
+                  },
+                  "rhs": {
+                    "type": "function",
+                    "name": "HardAndCertain",
+                    "arguments": []
+                  }
+                }
+              },
+              "rhs": {
+                "type": "division",
+                "lhs": {
+                  "type": "function",
+                  "name": "HardAndUncertain",
+                  "arguments": []
+                },
+                "rhs": {
+                  "type": "function",
+                  "name": "VeryHardAndCertain",
+                  "arguments": []
+                }
+              }
+            },
+            "rhs": {
+              "type": "exponentiation",
+              "lhs": {
+                "type": "function",
+                "name": "VeryHardAndUncertain",
+                "arguments": []
+              },
+              "rhs": {
+                "type": "function",
+                "name": "Zero",
+                "arguments": []
+              }
+            }
+          },
+          "requires": null,
+          "reaches": null
+        },
+        {
+          "name": "a2",
+          "meta": {},
+          "type": "or",
+          "tags": [],
+          "risk": null,
+          "ttc": {
+            "type": "addition",
+            "lhs": {
+              "type": "number",
+              "value": 1.0
+            },
+            "rhs": {
+              "type": "multiplication",
+              "lhs": {
+                "type": "number",
+                "value": 2.0
+              },
+              "rhs": {
+                "type": "number",
+                "value": 3.0
+              }
+            }
+          },
+          "requires": null,
+          "reaches": null
+        },
+        {
+          "name": "a3",
+          "meta": {},
+          "type": "or",
+          "tags": [],
+          "risk": null,
+          "ttc": {
+            "type": "multiplication",
+            "lhs": {
+              "type": "addition",
+              "lhs": {
+                "type": "number",
+                "value": 1.0
+              },
+              "rhs": {
+                "type": "number",
+                "value": 2.0
+              }
+            },
+            "rhs": {
+              "type": "number",
+              "value": 3.0
+            }
+          },
+          "requires": null,
+          "reaches": null
+        },
+        {
+          "name": "a4",
+          "meta": {},
+          "type": "or",
+          "tags": [],
+          "risk": null,
+          "ttc": {
+            "type": "addition",
+            "lhs": {
+              "type": "addition",
+              "lhs": {
+                "type": "addition",
+                "lhs": {
+                  "type": "addition",
+                  "lhs": {
+                    "type": "addition",
+                    "lhs": {
+                      "type": "addition",
+                      "lhs": {
+                        "type": "addition",
+                        "lhs": {
+                          "type": "function",
+                          "name": "Bernoulli",
+                          "arguments": [
+                            0.6
+                          ]
+                        },
+                        "rhs": {
+                          "type": "function",
+                          "name": "Binomial",
+                          "arguments": [
+                            3.0,
+                            0.9
+                          ]
+                        }
+                      },
+                      "rhs": {
+                        "type": "function",
+                        "name": "Exponential",
+                        "arguments": [
+                          0.1
+                        ]
+                      }
+                    },
+                    "rhs": {
+                      "type": "function",
+                      "name": "Gamma",
+                      "arguments": [
+                        1.0,
+                        2.0
+                      ]
+                    }
+                  },
+                  "rhs": {
+                    "type": "function",
+                    "name": "LogNormal",
+                    "arguments": [
+                      5.0,
+                      1.1
+                    ]
+                  }
+                },
+                "rhs": {
+                  "type": "function",
+                  "name": "Pareto",
+                  "arguments": [
+                    2.0,
+                    2.0
+                  ]
+                }
+              },
+              "rhs": {
+                "type": "function",
+                "name": "TruncatedNormal",
+                "arguments": [
+                  5.0,
+                  1.1
+                ]
+              }
+            },
+            "rhs": {
+              "type": "function",
+              "name": "Uniform",
+              "arguments": [
+                5.0,
+                10.0
+              ]
+            }
+          },
+          "requires": null,
+          "reaches": null
+        }
+      ]
+    }
+  ],
+  "associations": [
+    {
+      "name": "Assoc0",
+      "meta": {},
+      "leftAsset": "Asset",
+      "leftField": "subAssets",
+      "leftMultiplicity": {
+        "min": 0,
+        "max": null
+      },
+      "rightAsset": "Asset",
+      "rightField": "superAsset",
+      "rightMultiplicity": {
+        "min": 0,
+        "max": 1
+      }
+    },
+    {
+      "name": "Assoc1",
+      "meta": {
+        "meta": "line"
+      },
+      "leftAsset": "Asset",
+      "leftField": "_asset",
+      "leftMultiplicity": {
+        "min": 1,
+        "max": 1
+      },
+      "rightAsset": "Asset1",
+      "rightField": "asset1s",
+      "rightMultiplicity": {
+        "min": 0,
+        "max": null
+      }
+    },
+    {
+      "name": "Assoc2",
+      "meta": {
+        "meta1": "\"line\"",
+        "meta2": "line1\nline2"
+      },
+      "leftAsset": "Asset1",
+      "leftField": "asset1",
+      "leftMultiplicity": {
+        "min": 0,
+        "max": 1
+      },
+      "rightAsset": "Asset10",
+      "rightField": "asset10s",
+      "rightMultiplicity": {
+        "min": 0,
+        "max": null
+      }
+    },
+    {
+      "name": "Assoc3",
+      "meta": {},
+      "leftAsset": "Asset",
+      "leftField": "_asset",
+      "leftMultiplicity": {
+        "min": 1,
+        "max": 1
+      },
+      "rightAsset": "Asset7",
+      "rightField": "asset7s",
+      "rightMultiplicity": {
+        "min": 1,
+        "max": null
+      }
+    },
+    {
+      "name": "Assoc4",
+      "meta": {},
+      "leftAsset": "Asset",
+      "leftField": "_asset",
+      "leftMultiplicity": {
+        "min": 1,
+        "max": 1
+      },
+      "rightAsset": "_Asset8",
+      "rightField": "asset8s",
+      "rightMultiplicity": {
+        "min": 0,
+        "max": null
+      }
+    }
+  ]
+}

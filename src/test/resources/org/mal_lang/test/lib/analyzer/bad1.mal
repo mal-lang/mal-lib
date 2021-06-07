@@ -1,0 +1,49 @@
+// no #id
+// no #version
+#custom: ""
+#custom: "" // duplicate define
+category emp {} // empty category (warning)
+category cat
+  developer info: "rat"
+  {}
+category cat
+  user info: "category"
+  user info: "category" // duplicate info
+  developer info: "rat" // duplicate rationale from different definition
+  {
+  asset _A
+    developer info: "asset"
+    developer info: "asset" // duplicate rationale
+    {
+    | compromise ->
+      (a /\ a), // not attack step
+      c.compromise
+    | compromise <- a // duplicate attack step AND invalid require
+    & invalidate ->
+      (c \/ a).compromise, // invalid types
+      c[_A].compromise // invalid typeof
+  }
+  abstract asset AA extends _A { // abstract but never used (warning)
+    & compromise // types differ from parent
+    | access +> // parent doesn't have attack step
+      authorize, // invalid attack step
+      b.authorize // invalid field
+  }
+  asset AA {} // duplicate asset
+  asset _C {
+    let var1 = var1
+    let var1 = a // duplicate variable
+    let aaa = a
+    | compromise {C, C} -> // duplicate CIA
+      var1, // cyclic variable
+      aaa()*.compromise // invalid previous type
+    E e {C} // defense with CIA
+      <- a
+  }
+}
+associations {
+  _A [a] * <-- ac --> * [c] _C
+  _A [a] * <-- aa --> * [a] _A // duplicate fields
+     modeler info: "association"
+     modeler info: "association" // duplicate association
+}

@@ -1,0 +1,87 @@
+category Cat {
+  // Testing TTC
+  asset A1 {
+    &  a [a+b]
+    |  b [a-b]
+    #  c [a*b]
+    E  d [a/b]
+    !E e [a^b]
+    &  a [a+b*c]
+    |  b [a*b^e+c]
+    #  c [(a+b)*c]
+    E  d [a+(b*c)]
+    !E e [(a*b)+c]
+    &  a [a*(b+c)]
+    |  b [a()]
+    #  c [a(0)]
+    E  d [a(13)]
+    !E e [a(3.14)]
+    &  a [a(1, 1.1)]
+    |  b [a(1, 2.3, 3) + b]
+  }
+
+  // Testing CIA
+  asset A2 {
+    | a1
+    | a2 {}
+    | a3 {C}
+    | a4 {C, C}
+    | a5 {C, I, A}
+    | a6 {A, C, I}
+    | a7 {C, C, I, I, A, A}
+  }
+
+  // Testing meta
+  asset A3 {
+    & a
+      user info: "Info"
+    | b
+      user info: "Info"
+      developer info: "Reason"
+    # c [TTC]
+      user info: "Info"
+  }
+
+  // Testing existence
+  asset A4 {
+  	let x = y
+  	let a = b
+    E a
+      <- 
+         a.y,
+         b,
+         c \/ d,
+         a.(b[D])*
+  }
+
+  // Testing reaches
+  asset A5 {
+  	let x = y
+    let a = b
+    & a {I}
+      -> 
+         a.y,
+         b,
+         c \/ d,
+         a.(b[D])*
+    | b
+      <- x
+      -> y
+    # c [t]
+      <- x
+      +> y
+    E d {C} [t]
+      user info: "Info"
+      <- x
+      -> y
+  }
+
+  // Testing tags
+  asset A6 {
+    | a @a
+    | b @a {C}
+    | c @a @b
+    | d @a @b [t]
+    | e @a @b @c {C} [t]
+  }
+}

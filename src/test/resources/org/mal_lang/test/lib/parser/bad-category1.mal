@@ -1,0 +1,3 @@
+category Cat {
+  user info: "Info"
+}
