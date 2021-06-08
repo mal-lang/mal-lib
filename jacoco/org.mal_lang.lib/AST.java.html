@@ -1,0 +1,770 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AST.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">MAL lib</a> &gt; <a href="index.source.html" class="el_package">org.mal_lang.lib</a> &gt; <span class="el_source">AST.java</span></div><h1>AST.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2019-2021 Foreseeti AB &lt;https://foreseeti.com&gt;
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.mal_lang.lib;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+<span class="fc" id="L23">public class AST {</span>
+<span class="fc" id="L24">  private List&lt;Category&gt; categories = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L25">  private List&lt;Association&gt; associations = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L26">  private List&lt;Define&gt; defines = new ArrayList&lt;&gt;();</span>
+
+  @Override
+  public String toString() {
+<span class="fc" id="L30">    var sb = new StringBuilder();</span>
+<span class="fc" id="L31">    sb.append(String.format(&quot;%s,%n&quot;, Define.listToString(defines, 0)));</span>
+<span class="fc" id="L32">    sb.append(String.format(&quot;%s,%n&quot;, Category.listToString(categories, 0)));</span>
+<span class="fc" id="L33">    sb.append(String.format(&quot;%s%n&quot;, Association.listToString(associations, 0)));</span>
+<span class="fc" id="L34">    return sb.toString();</span>
+  }
+
+  public void include(AST other) {
+<span class="fc" id="L38">    this.categories.addAll(other.categories);</span>
+<span class="fc" id="L39">    this.associations.addAll(other.associations);</span>
+<span class="fc" id="L40">    this.defines.addAll(other.defines);</span>
+<span class="fc" id="L41">  }</span>
+
+  public List&lt;Category&gt; getCategories() {
+<span class="fc" id="L44">    var categories = new ArrayList&lt;Category&gt;();</span>
+<span class="fc" id="L45">    categories.addAll(this.categories);</span>
+<span class="fc" id="L46">    return categories;</span>
+  }
+
+  public void addCategory(Category category) {
+<span class="fc" id="L50">    this.categories.add(category);</span>
+<span class="fc" id="L51">  }</span>
+
+  public List&lt;Association&gt; getAssociations() {
+<span class="fc" id="L54">    var associations = new ArrayList&lt;Association&gt;();</span>
+<span class="fc" id="L55">    associations.addAll(this.associations);</span>
+<span class="fc" id="L56">    return associations;</span>
+  }
+
+  public void addAssociations(List&lt;Association&gt; associations) {
+<span class="fc" id="L60">    this.associations.addAll(associations);</span>
+<span class="fc" id="L61">  }</span>
+
+  public List&lt;Define&gt; getDefines() {
+<span class="fc" id="L64">    var defines = new ArrayList&lt;Define&gt;();</span>
+<span class="fc" id="L65">    defines.addAll(this.defines);</span>
+<span class="fc" id="L66">    return defines;</span>
+  }
+
+  public void addDefine(Define define) {
+<span class="fc" id="L70">    this.defines.add(define);</span>
+<span class="fc" id="L71">  }</span>
+
+  public static class ID extends Position {
+    public final String id;
+
+    public ID(Position pos, String id) {
+<span class="fc" id="L77">      super(pos);</span>
+<span class="fc" id="L78">      this.id = id;</span>
+<span class="fc" id="L79">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L83">      return String.format(&quot;ID(%s, \&quot;%s\&quot;)&quot;, posString(), id);</span>
+    }
+  }
+
+  public static class Define extends Position {
+    public final ID key;
+    public final String value;
+
+    public Define(Position pos, ID key, String value) {
+<span class="fc" id="L92">      super(pos);</span>
+<span class="fc" id="L93">      this.key = key;</span>
+<span class="fc" id="L94">      this.value = value;</span>
+<span class="fc" id="L95">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L99">      return String.format(&quot;Define(%s, %s, \&quot;%s\&quot;)&quot;, posString(), key.toString(), value);</span>
+    }
+
+    public static String listToString(List&lt;Define&gt; defines, int spaces) {
+<span class="fc" id="L103">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L104">      var sb = new StringBuilder();</span>
+<span class="fc" id="L105">      sb.append(String.format(&quot;%sdefines = {%n&quot;, indent));</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">      for (int i = 0; i &lt; defines.size(); i++) {</span>
+<span class="fc" id="L107">        sb.append(String.format(&quot;%s  %s&quot;, indent, defines.get(i).toString()));</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (i &lt; defines.size() - 1) {</span>
+<span class="fc" id="L109">          sb.append(',');</span>
+        }
+<span class="fc" id="L111">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L113">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L114">      return sb.toString();</span>
+    }
+  }
+
+  public static class Meta extends Position {
+    public final ID type;
+    public final String string;
+
+    public Meta(Position pos, ID type, String string) {
+<span class="fc" id="L123">      super(pos);</span>
+<span class="fc" id="L124">      this.type = type;</span>
+<span class="fc" id="L125">      this.string = string;</span>
+<span class="fc" id="L126">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L130">      return String.format(&quot;Meta(%s, %s, \&quot;%s\&quot;)&quot;, posString(), type.toString(), string);</span>
+    }
+
+    public static String listToString(List&lt;Meta&gt; meta, int spaces) {
+<span class="fc" id="L134">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L135">      var sb = new StringBuilder();</span>
+<span class="fc" id="L136">      sb.append(String.format(&quot;%smeta = {%n&quot;, indent));</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">      for (int i = 0; i &lt; meta.size(); i++) {</span>
+<span class="fc" id="L138">        sb.append(String.format(&quot;%s  %s&quot;, indent, meta.get(i).toString()));</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (i &lt; meta.size() - 1) {</span>
+<span class="fc" id="L140">          sb.append(',');</span>
+        }
+<span class="fc" id="L142">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L144">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L145">      return sb.toString();</span>
+    }
+  }
+
+  public static class Category extends Position {
+    public final ID name;
+    public final List&lt;Meta&gt; meta;
+    public final List&lt;Asset&gt; assets;
+
+    public Category(Position pos, ID name, List&lt;Meta&gt; meta, List&lt;Asset&gt; assets) {
+<span class="fc" id="L155">      super(pos);</span>
+<span class="fc" id="L156">      this.name = name;</span>
+<span class="fc" id="L157">      this.meta = meta;</span>
+<span class="fc" id="L158">      this.assets = assets;</span>
+<span class="fc" id="L159">    }</span>
+
+    public String toString(int spaces) {
+<span class="fc" id="L162">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L163">      var sb = new StringBuilder();</span>
+<span class="fc" id="L164">      sb.append(String.format(&quot;%sCategory(%s, %s,%n&quot;, indent, posString(), name.toString()));</span>
+<span class="fc" id="L165">      sb.append(String.format(&quot;%s,%n&quot;, Meta.listToString(meta, spaces + 2)));</span>
+<span class="fc" id="L166">      sb.append(String.format(&quot;%s%n&quot;, Asset.listToString(assets, spaces + 2)));</span>
+<span class="fc" id="L167">      sb.append(String.format(&quot;%s)&quot;, indent));</span>
+<span class="fc" id="L168">      return sb.toString();</span>
+    }
+
+    public static String listToString(List&lt;Category&gt; categories, int spaces) {
+<span class="fc" id="L172">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L173">      var sb = new StringBuilder();</span>
+<span class="fc" id="L174">      sb.append(String.format(&quot;%scategories = {%n&quot;, indent));</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">      for (int i = 0; i &lt; categories.size(); i++) {</span>
+<span class="fc" id="L176">        sb.append(String.format(&quot;%s&quot;, categories.get(i).toString(spaces + 2)));</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (i &lt; categories.size() - 1) {</span>
+<span class="nc" id="L178">          sb.append(',');</span>
+        }
+<span class="fc" id="L180">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L182">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L183">      return sb.toString();</span>
+    }
+  }
+
+  public static class Asset extends Position {
+    public final boolean isAbstract;
+    public final ID name;
+    public final Optional&lt;ID&gt; parent;
+    public final List&lt;Meta&gt; meta;
+    public final List&lt;AttackStep&gt; attackSteps;
+    public final List&lt;Variable&gt; variables;
+
+    public Asset(
+        Position pos,
+        boolean isAbstract,
+        ID name,
+        Optional&lt;ID&gt; parent,
+        List&lt;Meta&gt; meta,
+        List&lt;AttackStep&gt; attackSteps,
+        List&lt;Variable&gt; variables) {
+<span class="fc" id="L203">      super(pos);</span>
+<span class="fc" id="L204">      this.isAbstract = isAbstract;</span>
+<span class="fc" id="L205">      this.name = name;</span>
+<span class="fc" id="L206">      this.parent = parent;</span>
+<span class="fc" id="L207">      this.meta = meta;</span>
+<span class="fc" id="L208">      this.attackSteps = attackSteps;</span>
+<span class="fc" id="L209">      this.variables = variables;</span>
+<span class="fc" id="L210">    }</span>
+
+    public String toString(int spaces) {
+<span class="fc" id="L213">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L214">      var sb = new StringBuilder();</span>
+<span class="fc" id="L215">      sb.append(</span>
+<span class="fc" id="L216">          String.format(</span>
+              &quot;%sAsset(%s, %s, %s, %s,%n&quot;,
+              indent,
+<span class="fc" id="L219">              posString(),</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">              isAbstract ? &quot;ABSTRACT&quot; : &quot;NOT_ABSTRACT&quot;,</span>
+<span class="fc" id="L221">              name.toString(),</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">              parent.isEmpty()</span>
+<span class="fc" id="L223">                  ? &quot;NO_PARENT&quot;</span>
+<span class="fc" id="L224">                  : String.format(&quot;PARENT(%s)&quot;, parent.get().toString())));</span>
+<span class="fc" id="L225">      sb.append(String.format(&quot;%s,%n&quot;, Meta.listToString(meta, spaces + 2)));</span>
+<span class="fc" id="L226">      sb.append(String.format(&quot;%s,%n&quot;, AttackStep.listToString(attackSteps, spaces + 2)));</span>
+<span class="fc" id="L227">      sb.append(String.format(&quot;%s%n&quot;, Variable.listToString(variables, spaces + 2)));</span>
+<span class="fc" id="L228">      sb.append(String.format(&quot;%s)&quot;, indent));</span>
+<span class="fc" id="L229">      return sb.toString();</span>
+    }
+
+    public static String listToString(List&lt;Asset&gt; assets, int spaces) {
+<span class="fc" id="L233">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L234">      var sb = new StringBuilder();</span>
+<span class="fc" id="L235">      sb.append(String.format(&quot;%sassets = {%n&quot;, indent));</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">      for (int i = 0; i &lt; assets.size(); i++) {</span>
+<span class="fc" id="L237">        sb.append(String.format(&quot;%s&quot;, assets.get(i).toString(spaces + 2)));</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">        if (i &lt; assets.size() - 1) {</span>
+<span class="fc" id="L239">          sb.append(',');</span>
+        }
+<span class="fc" id="L241">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L243">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L244">      return sb.toString();</span>
+    }
+  }
+
+<span class="fc" id="L248">  public enum AttackStepType {</span>
+<span class="fc" id="L249">    ALL,</span>
+<span class="fc" id="L250">    ANY,</span>
+<span class="fc" id="L251">    DEFENSE,</span>
+<span class="fc" id="L252">    EXIST,</span>
+<span class="fc" id="L253">    NOTEXIST</span>
+  }
+
+  public static class AttackStep extends Position {
+    public final AttackStepType type;
+    public final ID name;
+    public final List&lt;ID&gt; tags;
+    public final Optional&lt;List&lt;CIA&gt;&gt; cia;
+    public final Optional&lt;TTCExpr&gt; ttc;
+    public final List&lt;Meta&gt; meta;
+    public final Optional&lt;Requires&gt; requires;
+    public final Optional&lt;Reaches&gt; reaches;
+
+    public AttackStep(
+        Position pos,
+        AttackStepType type,
+        ID name,
+        List&lt;ID&gt; tags,
+        Optional&lt;List&lt;CIA&gt;&gt; cia,
+        Optional&lt;TTCExpr&gt; ttc,
+        List&lt;Meta&gt; meta,
+        Optional&lt;Requires&gt; requires,
+        Optional&lt;Reaches&gt; reaches) {
+<span class="fc" id="L276">      super(pos);</span>
+<span class="fc" id="L277">      this.type = type;</span>
+<span class="fc" id="L278">      this.name = name;</span>
+<span class="fc" id="L279">      this.tags = tags;</span>
+<span class="fc" id="L280">      this.cia = cia;</span>
+<span class="fc" id="L281">      this.ttc = ttc;</span>
+<span class="fc" id="L282">      this.meta = meta;</span>
+<span class="fc" id="L283">      this.requires = requires;</span>
+<span class="fc" id="L284">      this.reaches = reaches;</span>
+<span class="fc" id="L285">    }</span>
+
+    public String toString(int spaces) {
+<span class="fc" id="L288">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L289">      var sb = new StringBuilder();</span>
+<span class="fc" id="L290">      sb.append(</span>
+<span class="fc" id="L291">          String.format(</span>
+<span class="fc" id="L292">              &quot;%sAttackStep(%s, %s, %s,%n&quot;, indent, posString(), type.name(), name.toString()));</span>
+<span class="fc" id="L293">      sb.append(String.format(&quot;%s  tags = {&quot;, indent));</span>
+<span class="pc bpc" id="L294" title="1 of 2 branches missed.">      for (int i = 0; i &lt; tags.size(); i++) {</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        if (i &gt; 0) {</span>
+<span class="nc" id="L296">          sb.append(&quot;, &quot;);</span>
+        }
+<span class="nc" id="L298">        sb.append(tags.get(i).toString());</span>
+      }
+<span class="fc" id="L300">      sb.append(String.format(&quot;},%n&quot;));</span>
+<span class="pc bpc" id="L301" title="1 of 2 branches missed.">      if (cia.isEmpty()) {</span>
+<span class="fc" id="L302">        sb.append(String.format(&quot;%s  cia = {},%n&quot;, indent));</span>
+      } else {
+<span class="nc" id="L304">        sb.append(String.format(&quot;%s  cia = {%s},%n&quot;, indent, CIA.listToString(cia.get())));</span>
+      }
+<span class="fc bfc" id="L306" title="All 2 branches covered.">      if (ttc.isEmpty()) {</span>
+<span class="fc" id="L307">        sb.append(String.format(&quot;%s  ttc = [],%n&quot;, indent));</span>
+      } else {
+<span class="fc" id="L309">        sb.append(String.format(&quot;%s  ttc = [%s],%n&quot;, indent, ttc.get().toString()));</span>
+      }
+<span class="fc" id="L311">      sb.append(String.format(&quot;%s,%n&quot;, Meta.listToString(meta, spaces + 2)));</span>
+<span class="fc bfc" id="L312" title="All 2 branches covered.">      if (requires.isEmpty()) {</span>
+<span class="fc" id="L313">        sb.append(String.format(&quot;%s  NO_REQUIRES,%n&quot;, indent));</span>
+      } else {
+<span class="fc" id="L315">        sb.append(String.format(&quot;%s,%n&quot;, requires.get().toString(spaces + 2)));</span>
+      }
+<span class="pc bpc" id="L317" title="1 of 2 branches missed.">      if (reaches.isEmpty()) {</span>
+<span class="nc" id="L318">        sb.append(String.format(&quot;%s  NO_REACHES%n&quot;, indent));</span>
+      } else {
+<span class="fc" id="L320">        sb.append(String.format(&quot;%s%n&quot;, reaches.get().toString(spaces + 2)));</span>
+      }
+<span class="fc" id="L322">      sb.append(String.format(&quot;%s)&quot;, indent));</span>
+<span class="fc" id="L323">      return sb.toString();</span>
+    }
+
+    public static String listToString(List&lt;AttackStep&gt; attackSteps, int spaces) {
+<span class="fc" id="L327">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L328">      var sb = new StringBuilder();</span>
+<span class="fc" id="L329">      sb.append(String.format(&quot;%sattacksteps = {%n&quot;, indent));</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">      for (int i = 0; i &lt; attackSteps.size(); i++) {</span>
+<span class="fc" id="L331">        sb.append(String.format(&quot;%s&quot;, attackSteps.get(i).toString(spaces + 2)));</span>
+<span class="fc bfc" id="L332" title="All 2 branches covered.">        if (i &lt; attackSteps.size() - 1) {</span>
+<span class="fc" id="L333">          sb.append(',');</span>
+        }
+<span class="fc" id="L335">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L337">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L338">      return sb.toString();</span>
+    }
+  }
+
+<span class="fc" id="L342">  public enum CIA {</span>
+<span class="fc" id="L343">    C,</span>
+<span class="fc" id="L344">    I,</span>
+<span class="fc" id="L345">    A;</span>
+
+    public static String listToString(List&lt;CIA&gt; cia) {
+<span class="nc" id="L348">      var sb = new StringBuilder();</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">      for (int i = 0; i &lt; cia.size(); i++) {</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">        if (i &gt; 0) {</span>
+<span class="nc" id="L351">          sb.append(&quot;, &quot;);</span>
+        }
+<span class="nc" id="L353">        sb.append(cia.get(i));</span>
+      }
+<span class="nc" id="L355">      return sb.toString();</span>
+    }
+  }
+
+  public abstract static class TTCExpr extends Position {
+    public TTCExpr(Position pos) {
+<span class="fc" id="L361">      super(pos);</span>
+<span class="fc" id="L362">    }</span>
+  }
+
+  public abstract static class TTCBinaryExpr extends TTCExpr {
+    public final TTCExpr lhs;
+    public final TTCExpr rhs;
+
+    public TTCBinaryExpr(Position pos, TTCExpr lhs, TTCExpr rhs) {
+<span class="fc" id="L370">      super(pos);</span>
+<span class="fc" id="L371">      this.lhs = lhs;</span>
+<span class="fc" id="L372">      this.rhs = rhs;</span>
+<span class="fc" id="L373">    }</span>
+  }
+
+  public static class TTCAddExpr extends TTCBinaryExpr {
+    public TTCAddExpr(Position pos, TTCExpr lhs, TTCExpr rhs) {
+<span class="fc" id="L378">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L379">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L383">      return String.format(&quot;TTCAddExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class TTCSubExpr extends TTCBinaryExpr {
+    public TTCSubExpr(Position pos, TTCExpr lhs, TTCExpr rhs) {
+<span class="fc" id="L389">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L390">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L394">      return String.format(&quot;TTCSubExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class TTCMulExpr extends TTCBinaryExpr {
+    public TTCMulExpr(Position pos, TTCExpr lhs, TTCExpr rhs) {
+<span class="fc" id="L400">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L401">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L405">      return String.format(&quot;TTCMulExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class TTCDivExpr extends TTCBinaryExpr {
+    public TTCDivExpr(Position pos, TTCExpr lhs, TTCExpr rhs) {
+<span class="fc" id="L411">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L412">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L416">      return String.format(&quot;TTCDivExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class TTCPowExpr extends TTCBinaryExpr {
+    public TTCPowExpr(Position pos, TTCExpr lhs, TTCExpr rhs) {
+<span class="fc" id="L422">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L423">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L427">      return String.format(&quot;TTCPowExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class TTCFuncExpr extends TTCExpr {
+    public final ID name;
+    public final List&lt;Double&gt; params;
+
+    public TTCFuncExpr(Position pos, ID name, List&lt;Double&gt; params) {
+<span class="fc" id="L436">      super(pos);</span>
+<span class="fc" id="L437">      this.name = name;</span>
+<span class="fc" id="L438">      this.params = params;</span>
+<span class="fc" id="L439">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L443">      var sb = new StringBuilder();</span>
+<span class="fc" id="L444">      sb.append(String.format(&quot;TTCFuncExpr(%s, %s&quot;, posString(), name.toString()));</span>
+<span class="fc bfc" id="L445" title="All 2 branches covered.">      for (var p : params) {</span>
+<span class="fc" id="L446">        sb.append(String.format(&quot;, %f&quot;, p));</span>
+<span class="fc" id="L447">      }</span>
+<span class="fc" id="L448">      sb.append(')');</span>
+<span class="fc" id="L449">      return sb.toString();</span>
+    }
+  }
+
+  public static class TTCNumExpr extends TTCExpr {
+    public final double value;
+
+    public TTCNumExpr(Position pos, double value) {
+<span class="fc" id="L457">      super(pos);</span>
+<span class="fc" id="L458">      this.value = value;</span>
+<span class="fc" id="L459">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L463">      return String.format(&quot;TTCNumExpr(%s, %f)&quot;, posString(), value);</span>
+    }
+  }
+
+  public static class Requires extends Position {
+    public final List&lt;Expr&gt; requires;
+
+    public Requires(Position pos, List&lt;Expr&gt; requires) {
+<span class="fc" id="L471">      super(pos);</span>
+<span class="fc" id="L472">      this.requires = requires;</span>
+<span class="fc" id="L473">    }</span>
+
+    public String toString(int spaces) {
+<span class="fc" id="L476">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L477">      var sb = new StringBuilder();</span>
+<span class="fc" id="L478">      sb.append(String.format(&quot;%sRequires(%s,%n&quot;, indent, posString()));</span>
+<span class="fc" id="L479">      sb.append(String.format(&quot;%s%n&quot;, Expr.listToString(requires, &quot;requires&quot;, spaces + 2)));</span>
+<span class="fc" id="L480">      sb.append(String.format(&quot;%s)&quot;, indent));</span>
+<span class="fc" id="L481">      return sb.toString();</span>
+    }
+  }
+
+  public static class Reaches extends Position {
+    public final boolean inherits;
+    public final List&lt;Expr&gt; reaches;
+
+    public Reaches(Position pos, boolean inherits, List&lt;Expr&gt; reaches) {
+<span class="fc" id="L490">      super(pos);</span>
+<span class="fc" id="L491">      this.inherits = inherits;</span>
+<span class="fc" id="L492">      this.reaches = reaches;</span>
+<span class="fc" id="L493">    }</span>
+
+    public String toString(int spaces) {
+<span class="fc" id="L496">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L497">      var sb = new StringBuilder();</span>
+<span class="fc" id="L498">      sb.append(</span>
+<span class="fc" id="L499">          String.format(</span>
+<span class="fc bfc" id="L500" title="All 2 branches covered.">              &quot;%sReaches(%s, %s,%n&quot;, indent, posString(), inherits ? &quot;INHERITS&quot; : &quot;OVERRIDES&quot;));</span>
+<span class="fc" id="L501">      sb.append(String.format(&quot;%s%n&quot;, Expr.listToString(reaches, &quot;reaches&quot;, spaces + 2)));</span>
+<span class="fc" id="L502">      sb.append(String.format(&quot;%s)&quot;, indent));</span>
+<span class="fc" id="L503">      return sb.toString();</span>
+    }
+  }
+
+  public static class Variable extends Position {
+    public final ID name;
+    public final Expr expr;
+
+    public Variable(Position pos, ID name, Expr expr) {
+<span class="fc" id="L512">      super(pos);</span>
+<span class="fc" id="L513">      this.name = name;</span>
+<span class="fc" id="L514">      this.expr = expr;</span>
+<span class="fc" id="L515">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L519">      return String.format(&quot;Variable(%s, %s, %s)&quot;, posString(), name.toString(), expr.toString());</span>
+    }
+
+    public static String listToString(List&lt;Variable&gt; variables, int spaces) {
+<span class="fc" id="L523">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L524">      var sb = new StringBuilder();</span>
+<span class="fc" id="L525">      sb.append(String.format(&quot;%svariables = {%n&quot;, indent));</span>
+<span class="fc bfc" id="L526" title="All 2 branches covered.">      for (int i = 0; i &lt; variables.size(); i++) {</span>
+<span class="fc" id="L527">        sb.append(String.format(&quot;%s  %s&quot;, indent, variables.get(i).toString()));</span>
+<span class="pc bpc" id="L528" title="1 of 2 branches missed.">        if (i &lt; variables.size() - 1) {</span>
+<span class="nc" id="L529">          sb.append(',');</span>
+        }
+<span class="fc" id="L531">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L533">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L534">      return sb.toString();</span>
+    }
+  }
+
+  public abstract static class Expr extends Position {
+    public Expr(Position pos) {
+<span class="fc" id="L540">      super(pos);</span>
+<span class="fc" id="L541">    }</span>
+
+    public static String listToString(List&lt;Expr&gt; exprs, String name, int spaces) {
+<span class="fc" id="L544">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L545">      var sb = new StringBuilder();</span>
+<span class="fc" id="L546">      sb.append(String.format(&quot;%s%s = {%n&quot;, indent, name));</span>
+<span class="fc bfc" id="L547" title="All 2 branches covered.">      for (int i = 0; i &lt; exprs.size(); i++) {</span>
+<span class="fc" id="L548">        sb.append(String.format(&quot;%s  %s&quot;, indent, exprs.get(i).toString()));</span>
+<span class="fc bfc" id="L549" title="All 2 branches covered.">        if (i &lt; exprs.size() - 1) {</span>
+<span class="fc" id="L550">          sb.append(',');</span>
+        }
+<span class="fc" id="L552">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L554">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L555">      return sb.toString();</span>
+    }
+  }
+
+  public abstract static class BinaryExpr extends Expr {
+    public final Expr lhs;
+    public final Expr rhs;
+
+    public BinaryExpr(Position pos, Expr lhs, Expr rhs) {
+<span class="fc" id="L564">      super(pos);</span>
+<span class="fc" id="L565">      this.lhs = lhs;</span>
+<span class="fc" id="L566">      this.rhs = rhs;</span>
+<span class="fc" id="L567">    }</span>
+  }
+
+  public static class UnionExpr extends BinaryExpr {
+    public UnionExpr(Position pos, Expr lhs, Expr rhs) {
+<span class="fc" id="L572">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L573">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L577">      return String.format(&quot;UnionExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class DifferenceExpr extends BinaryExpr {
+    public DifferenceExpr(Position pos, Expr lhs, Expr rhs) {
+<span class="fc" id="L583">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L584">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L588">      return String.format(</span>
+<span class="nc" id="L589">          &quot;DifferenceExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class IntersectionExpr extends BinaryExpr {
+    public IntersectionExpr(Position pos, Expr lhs, Expr rhs) {
+<span class="fc" id="L595">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L596">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L600">      return String.format(</span>
+<span class="nc" id="L601">          &quot;IntersectionExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public static class StepExpr extends BinaryExpr {
+    public StepExpr(Position pos, Expr lhs, Expr rhs) {
+<span class="fc" id="L607">      super(pos, lhs, rhs);</span>
+<span class="fc" id="L608">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L612">      return String.format(&quot;StepExpr(%s, %s, %s)&quot;, posString(), lhs.toString(), rhs.toString());</span>
+    }
+  }
+
+  public abstract static class UnaryExpr extends Expr {
+    public final Expr e;
+
+    public UnaryExpr(Position pos, Expr e) {
+<span class="fc" id="L620">      super(pos);</span>
+<span class="fc" id="L621">      this.e = e;</span>
+<span class="fc" id="L622">    }</span>
+  }
+
+  public static class TransitiveExpr extends UnaryExpr {
+    public TransitiveExpr(Position pos, Expr e) {
+<span class="fc" id="L627">      super(pos, e);</span>
+<span class="fc" id="L628">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L632">      return String.format(&quot;TransitiveExpr(%s, %s)&quot;, posString(), e.toString());</span>
+    }
+  }
+
+  public static class SubTypeExpr extends UnaryExpr {
+    public final ID subType;
+
+    public SubTypeExpr(Position pos, Expr e, ID subType) {
+<span class="fc" id="L640">      super(pos, e);</span>
+<span class="fc" id="L641">      this.subType = subType;</span>
+<span class="fc" id="L642">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L646">      return String.format(</span>
+<span class="fc" id="L647">          &quot;SubTypeExpr(%s, %s, %s)&quot;, posString(), e.toString(), subType.toString());</span>
+    }
+  }
+
+  public static class IDExpr extends Expr {
+    public final ID id;
+
+    public IDExpr(Position pos, ID id) {
+<span class="fc" id="L655">      super(pos);</span>
+<span class="fc" id="L656">      this.id = id;</span>
+<span class="fc" id="L657">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L661">      return String.format(&quot;IDExpr(%s, %s)&quot;, posString(), id.toString());</span>
+    }
+  }
+
+  public static class CallExpr extends Expr {
+    public final ID id;
+
+    public CallExpr(Position pos, ID id) {
+<span class="fc" id="L669">      super(pos);</span>
+<span class="fc" id="L670">      this.id = id;</span>
+<span class="fc" id="L671">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L675">      return String.format(&quot;CallExpr(%s, %s)&quot;, posString(), id.toString());</span>
+    }
+  }
+
+  public static class Association extends Position {
+    public final ID leftAsset;
+    public final ID leftField;
+    public final Multiplicity leftMult;
+    public final ID linkName;
+    public final Multiplicity rightMult;
+    public final ID rightField;
+    public final ID rightAsset;
+    public final List&lt;Meta&gt; meta;
+
+    public Association(
+        Position pos,
+        ID leftAsset,
+        ID leftField,
+        Multiplicity leftMult,
+        ID linkName,
+        Multiplicity rightMult,
+        ID rightField,
+        ID rightAsset,
+        List&lt;Meta&gt; meta) {
+<span class="fc" id="L699">      super(pos);</span>
+<span class="fc" id="L700">      this.leftAsset = leftAsset;</span>
+<span class="fc" id="L701">      this.leftField = leftField;</span>
+<span class="fc" id="L702">      this.leftMult = leftMult;</span>
+<span class="fc" id="L703">      this.linkName = linkName;</span>
+<span class="fc" id="L704">      this.rightMult = rightMult;</span>
+<span class="fc" id="L705">      this.rightField = rightField;</span>
+<span class="fc" id="L706">      this.rightAsset = rightAsset;</span>
+<span class="fc" id="L707">      this.meta = meta;</span>
+<span class="fc" id="L708">    }</span>
+
+    public String toString(int spaces) {
+<span class="fc" id="L711">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L712">      var sb = new StringBuilder();</span>
+<span class="fc" id="L713">      sb.append(</span>
+<span class="fc" id="L714">          String.format(</span>
+              &quot;%sAssociation(%s, %s, %s, %s, %s, %s, %s, %s,%n&quot;,
+              indent,
+<span class="fc" id="L717">              posString(),</span>
+<span class="fc" id="L718">              leftAsset.toString(),</span>
+<span class="fc" id="L719">              leftField.toString(),</span>
+<span class="fc" id="L720">              leftMult.name(),</span>
+<span class="fc" id="L721">              linkName.toString(),</span>
+<span class="fc" id="L722">              rightMult.name(),</span>
+<span class="fc" id="L723">              rightField.toString(),</span>
+<span class="fc" id="L724">              rightAsset.toString()));</span>
+<span class="fc" id="L725">      sb.append(String.format(&quot;%s%n&quot;, Meta.listToString(meta, spaces + 2)));</span>
+<span class="fc" id="L726">      sb.append(String.format(&quot;%s)&quot;, indent));</span>
+<span class="fc" id="L727">      return sb.toString();</span>
+    }
+
+    public String toShortString() {
+<span class="fc" id="L731">      return String.format(</span>
+          &quot;%s [%s] &lt;-- %s --&gt; %s [%s]&quot;,
+          leftAsset.id, leftField.id, linkName.id, rightAsset.id, rightField.id);
+    }
+
+    public static String listToString(List&lt;Association&gt; associations, int spaces) {
+<span class="fc" id="L737">      var indent = &quot; &quot;.repeat(spaces);</span>
+<span class="fc" id="L738">      var sb = new StringBuilder();</span>
+<span class="fc" id="L739">      sb.append(String.format(&quot;%sassociations = {%n&quot;, indent));</span>
+<span class="fc bfc" id="L740" title="All 2 branches covered.">      for (int i = 0; i &lt; associations.size(); i++) {</span>
+<span class="fc" id="L741">        sb.append(String.format(&quot;%s&quot;, associations.get(i).toString(spaces + 2)));</span>
+<span class="fc bfc" id="L742" title="All 2 branches covered.">        if (i &lt; associations.size() - 1) {</span>
+<span class="fc" id="L743">          sb.append(',');</span>
+        }
+<span class="fc" id="L745">        sb.append(String.format(&quot;%n&quot;));</span>
+      }
+<span class="fc" id="L747">      sb.append(String.format(&quot;%s}&quot;, indent));</span>
+<span class="fc" id="L748">      return sb.toString();</span>
+    }
+  }
+
+<span class="fc" id="L752">  public enum Multiplicity {</span>
+<span class="fc" id="L753">    ZERO_OR_ONE(&quot;0..1&quot;),</span>
+<span class="fc" id="L754">    ZERO_OR_MORE(&quot;*&quot;),</span>
+<span class="fc" id="L755">    ONE(&quot;1&quot;),</span>
+<span class="fc" id="L756">    ONE_OR_MORE(&quot;1..*&quot;);</span>
+
+    private String string;
+
+<span class="fc" id="L760">    private Multiplicity(String string) {</span>
+<span class="fc" id="L761">      this.string = string;</span>
+<span class="fc" id="L762">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L766">      return string;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,938 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Analyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">MAL lib</a> &gt; <a href="index.source.html" class="el_package">org.mal_lang.lib</a> &gt; <span class="el_source">Analyzer.java</span></div><h1>Analyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2019-2021 Foreseeti AB &lt;https://foreseeti.com&gt;
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.mal_lang.lib;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+public class Analyzer {
+  private MalLogger LOGGER;
+<span class="fc" id="L33">  private Map&lt;String, AST.Asset&gt; assets = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L34">  private Map&lt;String, Scope&lt;AST.Variable&gt;&gt; assetVariables = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L35">  private Map&lt;String, Scope&lt;AST.Association&gt;&gt; fields = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L36">  private Map&lt;String, Scope&lt;AST.AttackStep&gt;&gt; steps = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L37">  private Set&lt;AST.Variable&gt; currentVariables = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L38">  private Map&lt;AST.Variable, Integer&gt; variableReferenceCount = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L39">  private Map&lt;AST.Association, Map&lt;String, Integer&gt;&gt; fieldReferenceCount = new HashMap&lt;&gt;();</span>
+
+  private AST ast;
+  private boolean failed;
+
+<span class="fc" id="L44">  private Analyzer(AST ast, boolean verbose, boolean debug) {</span>
+<span class="fc" id="L45">    Locale.setDefault(Locale.ROOT);</span>
+<span class="fc" id="L46">    LOGGER = new MalLogger(&quot;ANALYZER&quot;, verbose, debug);</span>
+<span class="fc" id="L47">    this.ast = ast;</span>
+<span class="fc" id="L48">  }</span>
+
+  public static void analyze(AST ast) throws CompilerException {
+<span class="fc" id="L51">    analyze(ast, false, false);</span>
+<span class="fc" id="L52">  }</span>
+
+  public static void analyze(AST ast, boolean verbose, boolean debug) throws CompilerException {
+<span class="fc" id="L55">    new Analyzer(ast, verbose, debug).analyzeLog();</span>
+<span class="fc" id="L56">  }</span>
+
+  private void analyzeLog() throws CompilerException {
+    try {
+<span class="fc" id="L60">      _analyze();</span>
+<span class="fc" id="L61">      LOGGER.print();</span>
+<span class="fc" id="L62">    } catch (CompilerException e) {</span>
+<span class="fc" id="L63">      LOGGER.print();</span>
+<span class="fc" id="L64">      throw e;</span>
+<span class="fc" id="L65">    }</span>
+<span class="fc" id="L66">  }</span>
+
+  private void _analyze() throws CompilerException {
+<span class="fc" id="L69">    collectAssociations();</span>
+
+<span class="fc" id="L71">    checkDefines();</span>
+<span class="fc" id="L72">    checkCategories();</span>
+<span class="fc" id="L73">    checkAssets();</span>
+<span class="fc" id="L74">    checkMetas();</span>
+<span class="fc" id="L75">    checkExtends(); // might throw</span>
+
+<span class="fc" id="L77">    checkAbstract();</span>
+<span class="fc" id="L78">    checkParents(); // might throw</span>
+
+<span class="fc" id="L80">    checkSteps();</span>
+<span class="fc" id="L81">    checkCIA();</span>
+<span class="fc" id="L82">    checkTTC();</span>
+<span class="fc" id="L83">    checkFields();</span>
+<span class="fc" id="L84">    checkVariables();</span>
+<span class="fc" id="L85">    checkReaches(); // might throw</span>
+
+<span class="fc" id="L87">    checkAssociations(); // might throw</span>
+
+<span class="fc" id="L89">    checkUnused();</span>
+
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (failed) {</span>
+<span class="nc" id="L92">      throw exception();</span>
+    }
+<span class="fc" id="L94">  }</span>
+
+  private void collectAssociations() {
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    for (AST.Association assoc : ast.getAssociations()) {</span>
+<span class="fc" id="L98">      setupFieldReferenceCounts(assoc);</span>
+<span class="fc" id="L99">    }</span>
+<span class="fc" id="L100">  }</span>
+
+  private void addVariableReference(AST.Variable variable) {
+<span class="fc" id="L103">    int oldval = variableReferenceCount.get(variable);</span>
+<span class="fc" id="L104">    variableReferenceCount.put(variable, oldval + 1);</span>
+<span class="fc" id="L105">  }</span>
+
+  private void setupFieldReferenceCounts(AST.Association assoc) {
+<span class="fc" id="L108">    Map&lt;String, Integer&gt; fieldCounts = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L109">    fieldCounts.put(assoc.leftField.id, 0);</span>
+<span class="fc" id="L110">    fieldCounts.put(assoc.rightField.id, 0);</span>
+<span class="fc" id="L111">    fieldReferenceCount.put(assoc, fieldCounts);</span>
+<span class="fc" id="L112">  }</span>
+
+  private void addFieldReference(AST.Association assoc, AST.ID field) {
+<span class="fc" id="L115">    var fieldCounts = fieldReferenceCount.get(assoc);</span>
+<span class="fc" id="L116">    int oldcount = fieldCounts.get(field.id);</span>
+<span class="fc" id="L117">    fieldCounts.put(field.id, oldcount + 1);</span>
+<span class="fc" id="L118">  }</span>
+
+  private void checkAssociations() throws CompilerException {
+<span class="fc" id="L121">    boolean err = false;</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    for (AST.Association assoc : ast.getAssociations()) {</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">      if (!assets.containsKey(assoc.leftAsset.id)) {</span>
+<span class="nc" id="L124">        error(assoc.leftAsset, String.format(&quot;Left asset '%s' is not defined&quot;, assoc.leftAsset.id));</span>
+<span class="nc" id="L125">        err = true;</span>
+      }
+<span class="fc bfc" id="L127" title="All 2 branches covered.">      if (!assets.containsKey(assoc.rightAsset.id)) {</span>
+<span class="fc" id="L128">        error(</span>
+            assoc.rightAsset,
+<span class="fc" id="L130">            String.format(&quot;Right asset '%s' is not defined&quot;, assoc.rightAsset.id));</span>
+<span class="fc" id="L131">        err = true;</span>
+      }
+<span class="fc" id="L133">    }</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (err) {</span>
+<span class="fc" id="L135">      throw exception();</span>
+    }
+<span class="fc" id="L137">  }</span>
+
+  private void checkUnused() {
+    // variables
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    for (AST.Variable variable : variableReferenceCount.keySet()) {</span>
+<span class="fc" id="L142">      int val = variableReferenceCount.get(variable);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">      if (val == 0) {</span>
+<span class="fc" id="L144">        LOGGER.warning(</span>
+<span class="fc" id="L145">            variable.name, String.format(&quot;Variable '%s' is never used&quot;, variable.name.id));</span>
+      }
+<span class="fc" id="L147">    }</span>
+
+    // fields
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    for (var assoc : fieldReferenceCount.keySet()) {</span>
+<span class="fc" id="L151">      var fieldCounts = fieldReferenceCount.get(assoc);</span>
+<span class="fc" id="L152">      boolean onlyZeroRefs = true;</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">      for (var field : fieldCounts.keySet()) {</span>
+<span class="fc" id="L154">        int val = fieldCounts.get(field);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (val &gt; 0) {</span>
+<span class="fc" id="L156">          onlyZeroRefs = false;</span>
+<span class="fc" id="L157">          break;</span>
+        }
+<span class="fc" id="L159">      }</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      if (onlyZeroRefs) {</span>
+<span class="fc" id="L161">        LOGGER.warning(</span>
+<span class="fc" id="L162">            assoc, String.format(&quot;Association '%s' is never used&quot;, assoc.toShortString()));</span>
+      }
+<span class="fc" id="L164">    }</span>
+<span class="fc" id="L165">  }</span>
+
+  private void checkDefines() {
+<span class="fc" id="L168">    Map&lt;String, AST.Define&gt; defines = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    for (AST.Define define : ast.getDefines()) {</span>
+<span class="fc" id="L170">      AST.Define prevDef = defines.put(define.key.id, define);</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">      if (prevDef != null) {</span>
+<span class="fc" id="L172">        error(</span>
+            define,
+<span class="fc" id="L174">            String.format(</span>
+<span class="fc" id="L175">                &quot;Define '%s' previously defined at %s&quot;, define.key.id, prevDef.posString()));</span>
+      }
+<span class="fc" id="L177">    }</span>
+<span class="fc" id="L178">    AST.Define id = defines.get(&quot;id&quot;);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (id != null) {</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">      if (id.value.isBlank()) {</span>
+<span class="fc" id="L181">        error(id, &quot;Define 'id' cannot be empty&quot;);</span>
+      }
+    } else {
+<span class="fc" id="L184">      error(&quot;Missing required define '#id: \&quot;\&quot;'&quot;);</span>
+    }
+<span class="fc" id="L186">    AST.Define version = defines.get(&quot;version&quot;);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    if (version != null) {</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">      if (!version.value.matches(&quot;\\d+\\.\\d+\\.\\d+&quot;)) {</span>
+<span class="fc" id="L189">        error(</span>
+            version,
+            &quot;Define 'version' must be valid semantic versioning without pre-release identifier and&quot;
+                + &quot; build metadata&quot;);
+      }
+    } else {
+<span class="fc" id="L195">      error(&quot;Missing required define '#version: \&quot;\&quot;'&quot;);</span>
+    }
+<span class="fc" id="L197">  }</span>
+
+  private void checkCategories() {
+<span class="fc bfc" id="L200" title="All 2 branches covered.">    for (AST.Category category : ast.getCategories()) {</span>
+<span class="fc bfc" id="L201" title="All 4 branches covered.">      if (category.assets.isEmpty() &amp;&amp; category.meta.isEmpty()) {</span>
+<span class="fc" id="L202">        LOGGER.warning(</span>
+            category.name,
+<span class="fc" id="L204">            String.format(&quot;Category '%s' contains no assets or metadata&quot;, category.name.id));</span>
+      }
+<span class="fc" id="L206">    }</span>
+<span class="fc" id="L207">  }</span>
+
+  private void checkMetas() {
+    // Collect meta info from categories
+<span class="fc" id="L211">    Map&lt;String, List&lt;AST.Meta&gt;&gt; categoryMetas = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">    for (var category : ast.getCategories()) {</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">      if (!categoryMetas.containsKey(category.name.id)) {</span>
+<span class="fc" id="L214">        categoryMetas.put(category.name.id, new ArrayList&lt;&gt;());</span>
+      }
+<span class="fc" id="L216">      categoryMetas.get(category.name.id).addAll(category.meta);</span>
+<span class="fc" id="L217">    }</span>
+    // Check meta info for categories
+<span class="fc bfc" id="L219" title="All 2 branches covered.">    for (var metas : categoryMetas.values()) {</span>
+<span class="fc" id="L220">      checkMeta(metas);</span>
+<span class="fc" id="L221">    }</span>
+    // Check meta info for assets and attack steps
+<span class="fc bfc" id="L223" title="All 2 branches covered.">    for (var category : ast.getCategories()) {</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">      for (var asset : category.assets) {</span>
+<span class="fc" id="L225">        checkMeta(asset.meta);</span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">        for (var attackStep : asset.attackSteps) {</span>
+<span class="fc" id="L227">          checkMeta(attackStep.meta);</span>
+<span class="fc" id="L228">        }</span>
+<span class="fc" id="L229">      }</span>
+<span class="fc" id="L230">    }</span>
+    // Check meta info for associations
+<span class="fc bfc" id="L232" title="All 2 branches covered.">    for (var association : ast.getAssociations()) {</span>
+<span class="fc" id="L233">      checkMeta(association.meta);</span>
+<span class="fc" id="L234">    }</span>
+<span class="fc" id="L235">  }</span>
+
+  private void checkMeta(List&lt;AST.Meta&gt; lst) {
+<span class="fc" id="L238">    Map&lt;String, AST.Meta&gt; metas = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">    for (var meta : lst) {</span>
+<span class="fc bfc" id="L240" title="All 2 branches covered.">      if (!metas.containsKey(meta.type.id)) {</span>
+<span class="fc" id="L241">        metas.put(meta.type.id, meta);</span>
+      } else {
+<span class="fc" id="L243">        var prevDef = metas.get(meta.type.id);</span>
+<span class="fc" id="L244">        error(</span>
+            meta,
+<span class="fc" id="L246">            String.format(</span>
+<span class="fc" id="L247">                &quot;Metadata %s previously defined at %s&quot;, meta.type.id, prevDef.posString()));</span>
+      }
+<span class="fc" id="L249">    }</span>
+<span class="fc" id="L250">  }</span>
+
+  private void checkAssets() {
+<span class="fc bfc" id="L253" title="All 2 branches covered.">    for (AST.Category category : ast.getCategories()) {</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">      for (AST.Asset asset : category.assets) {</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        if (assets.containsKey(asset.name.id)) {</span>
+<span class="fc" id="L256">          AST.Asset prevDef = assets.get(asset.name.id);</span>
+<span class="fc" id="L257">          error(</span>
+              asset.name,
+<span class="fc" id="L259">              String.format(</span>
+<span class="fc" id="L260">                  &quot;Asset '%s' previously defined at %s&quot;, asset.name.id, prevDef.name.posString()));</span>
+<span class="fc" id="L261">        } else {</span>
+<span class="fc" id="L262">          assets.put(asset.name.id, asset);</span>
+        }
+<span class="fc" id="L264">      }</span>
+<span class="fc" id="L265">    }</span>
+<span class="fc" id="L266">  }</span>
+
+  private void checkExtends() throws CompilerException {
+<span class="fc" id="L269">    boolean err = false;</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">      if (asset.parent.isPresent()) {</span>
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">        if (getAsset(asset.parent.get()) == null) {</span>
+<span class="nc" id="L273">          err = true;</span>
+        }
+      }
+<span class="fc" id="L276">    }</span>
+<span class="pc bpc" id="L277" title="1 of 2 branches missed.">    if (err) {</span>
+<span class="nc" id="L278">      throw exception();</span>
+    }
+<span class="fc" id="L280">  }</span>
+
+  private void checkParents() throws CompilerException {
+<span class="fc" id="L283">    boolean err = false;</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc bfc" id="L285" title="All 2 branches covered.">      if (asset.parent.isPresent()) {</span>
+<span class="fc" id="L286">        Set&lt;String&gt; parents = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L287">        AST.Asset parent = asset;</span>
+        do {
+<span class="fc bfc" id="L289" title="All 2 branches covered.">          if (!parents.add(parent.name.id)) {</span>
+<span class="fc" id="L290">            StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">            for (String parentName : parents) {</span>
+<span class="fc" id="L292">              sb.append(parentName);</span>
+<span class="fc" id="L293">              sb.append(&quot; -&gt; &quot;);</span>
+<span class="fc" id="L294">            }</span>
+<span class="fc" id="L295">            sb.append(parent.name.id);</span>
+<span class="fc" id="L296">            error(</span>
+                asset.name,
+<span class="fc" id="L298">                String.format(&quot;Asset '%s' extends in loop '%s'&quot;, asset.name.id, sb.toString()));</span>
+<span class="fc" id="L299">            err = true;</span>
+<span class="fc" id="L300">            break;</span>
+          }
+<span class="fc" id="L302">          parent = getAsset(parent.parent.get());</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">        } while (parent.parent.isPresent());</span>
+      }
+<span class="fc" id="L305">    }</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">    if (err) {</span>
+<span class="fc" id="L307">      throw exception();</span>
+    }
+<span class="fc" id="L309">  }</span>
+
+  private void checkAbstract() {
+<span class="fc bfc" id="L312" title="All 2 branches covered.">    for (AST.Asset parent : assets.values()) {</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">      if (parent.isAbstract) {</span>
+<span class="fc" id="L314">        boolean found = false;</span>
+<span class="fc bfc" id="L315" title="All 2 branches covered.">        for (AST.Asset extendee : assets.values()) {</span>
+<span class="fc bfc" id="L316" title="All 4 branches covered.">          if (extendee.parent.isPresent() &amp;&amp; extendee.parent.get().id.equals(parent.name.id)) {</span>
+<span class="fc" id="L317">            found = true;</span>
+<span class="fc" id="L318">            break;</span>
+          }
+<span class="fc" id="L320">        }</span>
+<span class="fc bfc" id="L321" title="All 2 branches covered.">        if (!found) {</span>
+<span class="fc" id="L322">          LOGGER.warning(</span>
+              parent.name,
+<span class="fc" id="L324">              String.format(&quot;Asset '%s' is abstract but never extended to&quot;, parent.name.id));</span>
+        }
+      }
+<span class="fc" id="L327">    }</span>
+<span class="fc" id="L328">  }</span>
+
+  private void checkSteps() {
+<span class="fc bfc" id="L331" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc" id="L332">      Scope&lt;AST.AttackStep&gt; scope = new Scope&lt;&gt;();</span>
+<span class="fc" id="L333">      steps.put(asset.name.id, scope);</span>
+<span class="fc" id="L334">      readSteps(scope, asset);</span>
+<span class="fc" id="L335">    }</span>
+<span class="fc" id="L336">  }</span>
+
+  private void checkCIA() {
+<span class="fc bfc" id="L339" title="All 2 branches covered.">    for (var asset : assets.values()) {</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">      for (var attackStep : asset.attackSteps) {</span>
+<span class="fc bfc" id="L341" title="All 2 branches covered.">        if (attackStep.cia.isPresent()) {</span>
+<span class="pc bpc" id="L342" title="2 of 6 branches missed.">          if (attackStep.type == AST.AttackStepType.DEFENSE</span>
+              || attackStep.type == AST.AttackStepType.EXIST
+              || attackStep.type == AST.AttackStepType.NOTEXIST) {
+<span class="fc" id="L345">            error(attackStep.name, &quot;Defenses cannot have CIA classifications&quot;);</span>
+          }
+<span class="fc" id="L347">          var cias = new HashSet&lt;AST.CIA&gt;();</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">          for (var cia : attackStep.cia.get()) {</span>
+<span class="fc bfc" id="L349" title="All 2 branches covered.">            if (cias.contains(cia)) {</span>
+<span class="fc" id="L350">              LOGGER.warning(</span>
+                  attackStep.name,
+<span class="fc" id="L352">                  String.format(</span>
+                      &quot;Attack step %s.%s contains duplicate classification {%s}&quot;,
+                      asset.name.id, attackStep.name.id, cia));
+            } else {
+<span class="fc" id="L356">              cias.add(cia);</span>
+            }
+<span class="fc" id="L358">          }</span>
+        }
+<span class="fc" id="L360">      }</span>
+<span class="fc" id="L361">    }</span>
+<span class="fc" id="L362">  }</span>
+
+  private void checkTTC() {
+<span class="fc bfc" id="L365" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc bfc" id="L366" title="All 2 branches covered.">      for (AST.AttackStep attackStep : asset.attackSteps) {</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">        if (attackStep.ttc.isPresent()) {</span>
+<span class="fc" id="L368">          AST.TTCExpr ttc = attackStep.ttc.get();</span>
+<span class="fc bfc" id="L369" title="All 2 branches covered.">          if (attackStep.type == AST.AttackStepType.DEFENSE) {</span>
+<span class="fc bfc" id="L370" title="All 2 branches covered.">            if (!(ttc instanceof AST.TTCFuncExpr)) {</span>
+<span class="fc" id="L371">              error(</span>
+                  attackStep,
+<span class="fc" id="L373">                  String.format(</span>
+                      &quot;Defense %s.%s may not have advanced TTC expressions&quot;,
+                      asset.name.id, attackStep.name.id));
+            } else {
+<span class="fc" id="L377">              AST.TTCFuncExpr func = (AST.TTCFuncExpr) ttc;</span>
+<span class="fc bfc" id="L378" title="All 2 branches covered.">              switch (func.name.id) {</span>
+                case &quot;Enabled&quot;:
+                case &quot;Disabled&quot;:
+                case &quot;Bernoulli&quot;:
+                  try {
+<span class="fc" id="L383">                    Distributions.validate(func.name.id, func.params);</span>
+<span class="fc" id="L384">                  } catch (CompilerException e) {</span>
+<span class="fc" id="L385">                    error(func, e.getMessage());</span>
+<span class="fc" id="L386">                  }</span>
+<span class="fc" id="L387">                  break;</span>
+                default:
+<span class="fc" id="L389">                  error(</span>
+                      attackStep,
+<span class="fc" id="L391">                      String.format(</span>
+                          &quot;Defense %s.%s may only have 'Enabled', 'Disabled', or 'Bernoulli(p)' as&quot;
+                              + &quot; TTC&quot;,
+                          asset.name.id, attackStep.name.id));
+              }
+<span class="fc" id="L396">            }</span>
+<span class="pc bpc" id="L397" title="1 of 4 branches missed.">          } else if (attackStep.type == AST.AttackStepType.ALL</span>
+              || attackStep.type == AST.AttackStepType.ANY) {
+<span class="fc" id="L399">            checkTTCExpr(attackStep.ttc.get());</span>
+          }
+        }
+<span class="fc" id="L402">      }</span>
+<span class="fc" id="L403">    }</span>
+<span class="fc" id="L404">  }</span>
+
+  private void checkTTCExpr(AST.TTCExpr expr) {
+<span class="fc" id="L407">    checkTTCExpr(expr, false);</span>
+<span class="fc" id="L408">  }</span>
+
+  private void checkTTCExpr(AST.TTCExpr expr, boolean isSubDivExp) {
+<span class="fc bfc" id="L411" title="All 2 branches covered.">    if (expr instanceof AST.TTCBinaryExpr) {</span>
+<span class="fc bfc" id="L412" title="All 6 branches covered.">      isSubDivExp =</span>
+          expr instanceof AST.TTCSubExpr
+              || expr instanceof AST.TTCDivExpr
+              || expr instanceof AST.TTCPowExpr;
+<span class="fc" id="L416">      checkTTCExpr(((AST.TTCBinaryExpr) expr).lhs, isSubDivExp);</span>
+<span class="fc" id="L417">      checkTTCExpr(((AST.TTCBinaryExpr) expr).rhs, isSubDivExp);</span>
+<span class="fc bfc" id="L418" title="All 2 branches covered.">    } else if (expr instanceof AST.TTCFuncExpr) {</span>
+<span class="fc" id="L419">      AST.TTCFuncExpr func = (AST.TTCFuncExpr) expr;</span>
+<span class="fc bfc" id="L420" title="All 4 branches covered.">      if (func.name.id.equals(&quot;Enabled&quot;) || func.name.id.equals(&quot;Disabled&quot;)) {</span>
+<span class="fc" id="L421">        error(</span>
+            expr,
+            &quot;Distributions 'Enabled' or 'Disabled' may not be used as TTC values in '&amp;' and '|'&quot;
+                + &quot; attack steps&quot;);
+      } else {
+<span class="fc bfc" id="L426" title="All 4 branches covered.">        if (isSubDivExp &amp;&amp; Arrays.asList(&quot;Bernoulli&quot;, &quot;EasyAndUncertain&quot;).contains(func.name.id)) {</span>
+<span class="fc" id="L427">          error(</span>
+              expr,
+<span class="fc" id="L429">              String.format(</span>
+                  &quot;TTC distribution '%s' is not available in subtraction, division or exponential&quot;
+                      + &quot; expressions.&quot;,
+                  func.name.id));
+        }
+        try {
+<span class="fc" id="L435">          Distributions.validate(func.name.id, func.params);</span>
+<span class="fc" id="L436">        } catch (CompilerException e) {</span>
+<span class="fc" id="L437">          error(func, e.getMessage());</span>
+<span class="fc" id="L438">        }</span>
+      }
+<span class="pc bpc" id="L440" title="1 of 2 branches missed.">    } else if (expr instanceof AST.TTCNumExpr) {</span>
+      // always ok
+    } else {
+<span class="nc" id="L443">      error(expr, String.format(&quot;Unexpected expression '%s'&quot;, expr.toString()));</span>
+<span class="nc" id="L444">      System.exit(1);</span>
+    }
+<span class="fc" id="L446">  }</span>
+
+  /**
+   * Retrieves a list of an assets parents (including itself). The oldest parents will be first in
+   * the list. E.g. Alpha extends Bravo extends Charlie would return [Charlie, Bravo, Alpha] for
+   * asset Alpha.
+   *
+   * @param asset Child asset
+   * @return List of parents, oldest parent first in list
+   */
+  private LinkedList&lt;AST.Asset&gt; getParents(AST.Asset asset) {
+<span class="fc" id="L457">    LinkedList&lt;AST.Asset&gt; lst = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L458">    lst.addFirst(asset);</span>
+<span class="fc bfc" id="L459" title="All 2 branches covered.">    while (asset.parent.isPresent()) {</span>
+<span class="fc" id="L460">      asset = getAsset(asset.parent.get());</span>
+<span class="fc" id="L461">      lst.addFirst(asset);</span>
+    }
+<span class="fc" id="L463">    return lst;</span>
+  }
+
+  /**
+   * Populates a scope with attack steps of an asset and its parents. Checks semantic rules to make
+   * sure scope is correctly filled.
+   *
+   * @param scope Scope to populate
+   * @param asset Child asset
+   */
+  private void readSteps(Scope&lt;AST.AttackStep&gt; scope, AST.Asset asset) {
+<span class="fc" id="L474">    List&lt;AST.Asset&gt; parents = getParents(asset);</span>
+<span class="fc bfc" id="L475" title="All 2 branches covered.">    for (AST.Asset parent : parents) {</span>
+<span class="fc bfc" id="L476" title="All 2 branches covered.">      if (parent.parent.isPresent()) {</span>
+<span class="fc" id="L477">        scope = new Scope&lt;&gt;(scope);</span>
+<span class="fc" id="L478">        steps.put(asset.name.id, scope);</span>
+      }
+<span class="fc bfc" id="L480" title="All 2 branches covered.">      for (AST.AttackStep attackStep : parent.attackSteps) {</span>
+<span class="fc" id="L481">        AST.AttackStep prevDef = scope.look(attackStep.name.id);</span>
+<span class="fc bfc" id="L482" title="All 2 branches covered.">        if (prevDef == null) {</span>
+          // Attack step is not defined in current scope
+<span class="fc" id="L484">          prevDef = scope.lookup(attackStep.name.id);</span>
+<span class="fc bfc" id="L485" title="All 2 branches covered.">          if (prevDef == null) {</span>
+            // Attack step is not defined in any scope
+<span class="fc bfc" id="L487" title="All 4 branches covered.">            if (attackStep.reaches.isEmpty() || !attackStep.reaches.get().inherits) {</span>
+              // Attack step either doesn't reach anything or reaches with -&gt;, OK
+<span class="fc" id="L489">              scope.add(attackStep.name.id, attackStep);</span>
+            } else {
+              // Attack step reaches something with +&gt; but doesn't exist previously, NOK
+<span class="fc" id="L492">              error(</span>
+<span class="fc" id="L493">                  attackStep.reaches.get(),</span>
+<span class="fc" id="L494">                  String.format(</span>
+                      &quot;Cannot inherit attack step '%s' without previous definition&quot;,
+                      attackStep.name.id));
+            }
+          } else {
+            // Attack step is previously defined in another scope
+<span class="fc bfc" id="L500" title="All 2 branches covered.">            if (attackStep.type.equals(prevDef.type)) {</span>
+              // Step is of same type as previous, OK
+<span class="fc" id="L502">              scope.add(attackStep.name.id, attackStep);</span>
+            } else {
+              // Step is NOT of same type as previous, NOK
+<span class="fc" id="L505">              error(</span>
+                  attackStep.name,
+<span class="fc" id="L507">                  String.format(</span>
+                      &quot;Cannot override attack step '%s' previously defined at %s with different&quot;
+                          + &quot; type '%s' =/= '%s'&quot;,
+<span class="fc" id="L510">                      attackStep.name.id, prevDef.name.posString(), attackStep.type, prevDef.type));</span>
+            }
+          }
+        } else {
+          // Attack step is defined in this scope, NOK
+<span class="fc" id="L515">          error(</span>
+              attackStep.name,
+<span class="fc" id="L517">              String.format(</span>
+                  &quot;Attack step '%s' previously defined at %s&quot;,
+<span class="fc" id="L519">                  attackStep.name.id, prevDef.name.posString()));</span>
+        }
+<span class="fc" id="L521">      }</span>
+<span class="fc" id="L522">    }</span>
+<span class="fc" id="L523">  }</span>
+
+  private void checkVariables() {
+<span class="fc bfc" id="L526" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc" id="L527">      Scope&lt;AST.Variable&gt; scope = new Scope&lt;&gt;();</span>
+<span class="fc" id="L528">      assetVariables.put(asset.name.id, scope);</span>
+<span class="fc" id="L529">      readVariables(scope, asset);</span>
+<span class="fc" id="L530">    }</span>
+
+<span class="fc bfc" id="L532" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc" id="L533">      var scope = assetVariables.get(asset.name.id);</span>
+<span class="fc bfc" id="L534" title="All 2 branches covered.">      for (var variable : scope.getSymbols().entrySet()) {</span>
+<span class="fc" id="L535">        variableToAsset(asset, variable.getValue());</span>
+<span class="fc" id="L536">        variableReferenceCount.put(variable.getValue(), 0);</span>
+<span class="fc" id="L537">      }</span>
+<span class="fc" id="L538">    }</span>
+<span class="fc" id="L539">  }</span>
+
+  /**
+   * Populate a scope with variable names from an asset and its parents
+   *
+   * @param scope
+   * @param asset
+   */
+  private void readVariables(Scope&lt;AST.Variable&gt; scope, AST.Asset asset) {
+<span class="fc" id="L548">    List&lt;AST.Asset&gt; parents = getParents(asset);</span>
+<span class="fc bfc" id="L549" title="All 2 branches covered.">    for (AST.Asset parent : parents) {</span>
+<span class="fc bfc" id="L550" title="All 2 branches covered.">      if (parent.parent.isPresent()) {</span>
+<span class="fc" id="L551">        scope = new Scope&lt;&gt;(scope);</span>
+<span class="fc" id="L552">        assetVariables.put(asset.name.id, scope);</span>
+      }
+<span class="fc bfc" id="L554" title="All 2 branches covered.">      for (AST.Variable variable : parent.variables) {</span>
+<span class="fc" id="L555">        addVariable(scope, variable);</span>
+<span class="fc" id="L556">      }</span>
+<span class="fc" id="L557">    }</span>
+<span class="fc" id="L558">  }</span>
+
+  private void checkFields() {
+<span class="fc bfc" id="L561" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc" id="L562">      Scope&lt;AST.Association&gt; scope = new Scope&lt;&gt;();</span>
+<span class="fc" id="L563">      fields.put(asset.name.id, scope);</span>
+<span class="fc" id="L564">      readFields(scope, asset);</span>
+<span class="fc" id="L565">    }</span>
+<span class="fc" id="L566">  }</span>
+
+  /**
+   * Populates a scope with field names and associations from an asset and its parents.
+   *
+   * @param scope Scope to populate
+   * @param asset Child asset
+   */
+  private void readFields(Scope&lt;AST.Association&gt; scope, AST.Asset asset) {
+<span class="fc" id="L575">    List&lt;AST.Asset&gt; parents = getParents(asset);</span>
+<span class="fc bfc" id="L576" title="All 2 branches covered.">    for (AST.Asset parent : parents) {</span>
+<span class="fc bfc" id="L577" title="All 2 branches covered.">      if (parent.parent.isPresent()) {</span>
+<span class="fc" id="L578">        scope = new Scope&lt;&gt;(scope);</span>
+<span class="fc" id="L579">        fields.put(asset.name.id, scope);</span>
+      }
+<span class="fc bfc" id="L581" title="All 2 branches covered.">      for (AST.Association assoc : ast.getAssociations()) {</span>
+<span class="fc bfc" id="L582" title="All 2 branches covered.">        if (assoc.leftAsset.id.equals(parent.name.id)) {</span>
+<span class="fc" id="L583">          addField(scope, parent, asset, assoc.rightField, assoc);</span>
+        }
+        // Association can be made from one asset to itself
+<span class="fc bfc" id="L586" title="All 2 branches covered.">        if (assoc.rightAsset.id.equals(parent.name.id)) {</span>
+<span class="fc" id="L587">          addField(scope, parent, asset, assoc.leftField, assoc);</span>
+        }
+<span class="fc" id="L589">      }</span>
+<span class="fc" id="L590">    }</span>
+<span class="fc" id="L591">  }</span>
+
+  private void addField(
+      Scope&lt;AST.Association&gt; scope,
+      AST.Asset parent,
+      AST.Asset asset,
+      AST.ID field,
+      AST.Association assoc) {
+<span class="fc" id="L599">    AST.Association prevDef = scope.lookdown(field.id);</span>
+<span class="fc bfc" id="L600" title="All 2 branches covered.">    if (prevDef == null) {</span>
+      // Field not previously defined
+<span class="fc" id="L602">      AST.ID prevStep = hasStep(asset, field.id);</span>
+<span class="pc bpc" id="L603" title="1 of 2 branches missed.">      if (prevStep == null) {</span>
+<span class="fc" id="L604">        scope.add(field.id, assoc);</span>
+      } else {
+        // Field previously defined as attack step
+<span class="nc" id="L607">        error(</span>
+            field,
+<span class="nc" id="L609">            String.format(</span>
+                &quot;Field '%s' previously defined as attack step at %s&quot;,
+<span class="nc" id="L611">                field.id, prevStep.posString()));</span>
+      }
+<span class="fc" id="L613">    } else {</span>
+      // Field previously defined
+      AST.ID prevField;
+<span class="pc bpc" id="L616" title="1 of 2 branches missed.">      if (field.id.equals(prevDef.rightField.id)) {</span>
+<span class="fc" id="L617">        prevField = prevDef.rightField;</span>
+      } else {
+<span class="nc" id="L619">        prevField = prevDef.leftField;</span>
+      }
+<span class="fc" id="L621">      error(</span>
+          field,
+<span class="fc" id="L623">          String.format(</span>
+              &quot;Field %s.%s previously defined for asset at %s&quot;,
+<span class="fc" id="L625">              parent.name.id, field.id, prevField.posString()));</span>
+    }
+<span class="fc" id="L627">  }</span>
+
+  private void addVariable(Scope&lt;AST.Variable&gt; scope, AST.Variable variable) {
+<span class="fc" id="L630">    AST.Variable prevDef = scope.lookup(variable.name.id);</span>
+<span class="fc bfc" id="L631" title="All 2 branches covered.">    if (prevDef == null) {</span>
+<span class="fc" id="L632">      variableReferenceCount.put(variable, 0);</span>
+<span class="fc" id="L633">      scope.add(variable.name.id, variable);</span>
+    } else {
+<span class="fc" id="L635">      error(</span>
+          variable.name,
+<span class="fc" id="L637">          String.format(</span>
+              &quot;Variable '%s' previously defined at %s&quot;,
+<span class="fc" id="L639">              variable.name.id, prevDef.name.posString()));</span>
+    }
+<span class="fc" id="L641">  }</span>
+
+  /** Evaluates each expression reached by an attack step. */
+  private void checkReaches() throws CompilerException {
+<span class="fc bfc" id="L645" title="All 2 branches covered.">    for (AST.Asset asset : assets.values()) {</span>
+<span class="fc bfc" id="L646" title="All 2 branches covered.">      for (AST.AttackStep attackStep : asset.attackSteps) {</span>
+<span class="fc bfc" id="L647" title="All 4 branches covered.">        if (attackStep.type == AST.AttackStepType.EXIST</span>
+            || attackStep.type == AST.AttackStepType.NOTEXIST) {
+<span class="pc bpc" id="L649" title="1 of 2 branches missed.">          if (attackStep.ttc.isPresent()) {</span>
+<span class="nc" id="L650">            error(</span>
+                attackStep,
+<span class="nc" id="L652">                String.format(&quot;Attack step of type '%s' must not have TTC&quot;, attackStep.type));</span>
+<span class="nc" id="L653">            continue;</span>
+          }
+<span class="pc bpc" id="L655" title="1 of 2 branches missed.">          if (attackStep.requires.isPresent()) {</span>
+            // Requires (&lt;-)
+<span class="fc bfc" id="L657" title="All 2 branches covered.">            for (AST.Expr expr : attackStep.requires.get().requires) {</span>
+              // Requires only have expressions that ends in assets/fields, not attack steps.
+<span class="fc" id="L659">              checkToAsset(asset, expr);</span>
+<span class="fc" id="L660">            }</span>
+          } else {
+<span class="nc" id="L662">            error(</span>
+                attackStep,
+<span class="nc" id="L664">                String.format(&quot;Attack step of type '%s' must have require '&lt;-'&quot;, attackStep.type));</span>
+<span class="nc" id="L665">            continue;</span>
+          }
+<span class="fc bfc" id="L667" title="All 2 branches covered.">        } else if (attackStep.requires.isPresent()) {</span>
+<span class="fc" id="L668">          error(</span>
+<span class="fc" id="L669">              attackStep.requires.get(),</span>
+              &quot;Require '&lt;-' may only be defined for attack step type exist 'E' or not-exist '!E'&quot;);
+<span class="fc" id="L671">          continue;</span>
+        }
+
+<span class="fc bfc" id="L674" title="All 2 branches covered.">        if (attackStep.reaches.isPresent()) {</span>
+<span class="fc bfc" id="L675" title="All 2 branches covered.">          for (AST.Expr expr : attackStep.reaches.get().reaches) {</span>
+<span class="fc" id="L676">            checkToStep(asset, expr);</span>
+<span class="fc" id="L677">          }</span>
+        }
+<span class="fc" id="L679">      }</span>
+<span class="fc" id="L680">    }</span>
+<span class="fc bfc" id="L681" title="All 2 branches covered.">    if (failed) {</span>
+<span class="fc" id="L682">      throw exception();</span>
+    }
+<span class="fc" id="L684">  }</span>
+
+  private AST.AttackStep checkToStep(AST.Asset asset, AST.Expr expr) {
+<span class="fc bfc" id="L687" title="All 2 branches covered.">    if (expr instanceof AST.IDExpr) {</span>
+<span class="fc" id="L688">      AST.IDExpr step = (AST.IDExpr) expr;</span>
+<span class="fc" id="L689">      AST.Asset target = asset;</span>
+<span class="fc" id="L690">      AST.AttackStep attackStep = steps.get(target.name.id).lookup(step.id.id);</span>
+<span class="fc bfc" id="L691" title="All 2 branches covered.">      if (attackStep != null) {</span>
+<span class="fc" id="L692">        return attackStep;</span>
+      } else {
+<span class="fc" id="L694">        error(</span>
+            step.id,
+<span class="fc" id="L696">            String.format(</span>
+                &quot;Attack step '%s' not defined for asset '%s'&quot;, step.id.id, target.name.id));
+<span class="fc" id="L698">        return null;</span>
+      }
+<span class="fc bfc" id="L700" title="All 2 branches covered.">    } else if (expr instanceof AST.StepExpr) {</span>
+<span class="fc" id="L701">      AST.StepExpr step = (AST.StepExpr) expr;</span>
+<span class="fc" id="L702">      AST.Asset target = checkToAsset(asset, step.lhs);</span>
+<span class="fc bfc" id="L703" title="All 2 branches covered.">      if (target != null) {</span>
+<span class="fc" id="L704">        return checkToStep(target, step.rhs);</span>
+      } else {
+<span class="fc" id="L706">        return null;</span>
+      }
+    } else {
+<span class="fc" id="L709">      error(expr, &quot;Last step is not attack step&quot;);</span>
+<span class="fc" id="L710">      return null;</span>
+    }
+  }
+
+  private AST.Asset checkToAsset(AST.Asset asset, AST.Expr expr) {
+<span class="fc bfc" id="L715" title="All 2 branches covered.">    if (expr instanceof AST.StepExpr) {</span>
+<span class="fc" id="L716">      return checkStepExpr(asset, (AST.StepExpr) expr);</span>
+<span class="fc bfc" id="L717" title="All 2 branches covered.">    } else if (expr instanceof AST.IDExpr) {</span>
+<span class="fc" id="L718">      return checkIDExpr(asset, (AST.IDExpr) expr);</span>
+<span class="fc bfc" id="L719" title="All 6 branches covered.">    } else if (expr instanceof AST.IntersectionExpr</span>
+        || expr instanceof AST.UnionExpr
+        || expr instanceof AST.DifferenceExpr) {
+<span class="fc" id="L722">      return checkSetExpr(asset, (AST.BinaryExpr) expr);</span>
+<span class="fc bfc" id="L723" title="All 2 branches covered.">    } else if (expr instanceof AST.TransitiveExpr) {</span>
+<span class="fc" id="L724">      return checkTransitiveExpr(asset, (AST.TransitiveExpr) expr);</span>
+<span class="fc bfc" id="L725" title="All 2 branches covered.">    } else if (expr instanceof AST.SubTypeExpr) {</span>
+<span class="fc" id="L726">      return checkSubTypeExpr(asset, (AST.SubTypeExpr) expr);</span>
+<span class="pc bpc" id="L727" title="1 of 2 branches missed.">    } else if (expr instanceof AST.CallExpr) {</span>
+<span class="fc" id="L728">      return checkCallExpr(asset, (AST.CallExpr) expr);</span>
+    } else {
+<span class="nc" id="L730">      error(expr, String.format(&quot;Unexpected expression '%s'&quot;, expr.toString()));</span>
+<span class="nc" id="L731">      System.exit(1);</span>
+<span class="nc" id="L732">      return null;</span>
+    }
+  }
+
+  private AST.Asset checkStepExpr(AST.Asset asset, AST.StepExpr expr) {
+<span class="fc" id="L737">    AST.Asset leftTarget = checkToAsset(asset, expr.lhs);</span>
+<span class="pc bpc" id="L738" title="1 of 2 branches missed.">    if (leftTarget != null) {</span>
+<span class="fc" id="L739">      AST.Asset rightTarget = checkToAsset(leftTarget, expr.rhs);</span>
+<span class="fc" id="L740">      return rightTarget;</span>
+    } else {
+<span class="nc" id="L742">      return null;</span>
+    }
+  }
+
+  /**
+   * When evaluating a variable (variableToAsset()), a record must be kept to check for cyclic usage
+   * of variables.
+   *
+   * @param variable Variable evaluated
+   * @return True if variable is not being evaluated, false otherwise
+   */
+  private boolean evalVariableBegin(AST.Variable variable) {
+<span class="fc" id="L754">    addVariableReference(variable);</span>
+<span class="pc bpc" id="L755" title="1 of 2 branches missed.">    if (currentVariables.add(variable)) {</span>
+<span class="fc" id="L756">      return true;</span>
+    } else {
+<span class="nc" id="L758">      StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L759" title="All 2 branches missed.">      for (var key : currentVariables) {</span>
+<span class="nc" id="L760">        sb.append(key.name.id);</span>
+<span class="nc" id="L761">        sb.append(&quot; -&gt; &quot;);</span>
+<span class="nc" id="L762">      }</span>
+<span class="nc" id="L763">      sb.append(variable.name.id);</span>
+<span class="nc" id="L764">      AST.Variable first = (AST.Variable) currentVariables.toArray()[0];</span>
+<span class="nc" id="L765">      error(</span>
+          first.name,
+<span class="nc" id="L767">          String.format(&quot;Variable '%s' contains cycle '%s'&quot;, first.name.id, sb.toString()));</span>
+<span class="nc" id="L768">      return false;</span>
+    }
+  }
+
+  private void evalVariableEnd(AST.Variable variable) {
+<span class="fc" id="L773">    currentVariables.remove(variable);</span>
+<span class="fc" id="L774">  }</span>
+
+  private AST.Asset variableToAsset(AST.Asset asset, AST.Variable variable) {
+<span class="pc bpc" id="L777" title="1 of 2 branches missed.">    if (evalVariableBegin(variable)) {</span>
+
+<span class="fc" id="L779">      AST.Asset res = checkToAsset(asset, variable.expr);</span>
+<span class="fc" id="L780">      evalVariableEnd(variable);</span>
+<span class="fc" id="L781">      return res;</span>
+    } else {
+<span class="nc" id="L783">      return null;</span>
+    }
+  }
+
+  private AST.Asset checkCallExpr(AST.Asset asset, AST.CallExpr expr) {
+<span class="fc" id="L788">    var scope = assetVariables.get(asset.name.id);</span>
+<span class="fc" id="L789">    var variableScope = scope.getScopeFor(expr.id.id);</span>
+<span class="pc bpc" id="L790" title="1 of 2 branches missed.">    if (variableScope != null) {</span>
+<span class="fc" id="L791">      var variable = variableScope.look(expr.id.id);</span>
+<span class="pc bpc" id="L792" title="1 of 2 branches missed.">      if (variable != null) {</span>
+<span class="fc" id="L793">        return variableToAsset(asset, variable);</span>
+      }
+    }
+<span class="nc" id="L796">    error(expr, String.format(&quot;Variable '%s' is not defined&quot;, expr.id.id));</span>
+<span class="nc" id="L797">    return null;</span>
+  }
+
+  private AST.Asset checkIDExpr(AST.Asset asset, AST.IDExpr expr) {
+<span class="fc" id="L801">    return getTarget(asset, expr.id);</span>
+  }
+
+  private AST.Asset checkSetExpr(AST.Asset asset, AST.BinaryExpr expr) {
+<span class="fc" id="L805">    AST.Asset leftTarget = checkToAsset(asset, expr.lhs);</span>
+<span class="fc" id="L806">    AST.Asset rightTarget = checkToAsset(asset, expr.rhs);</span>
+<span class="pc bpc" id="L807" title="2 of 4 branches missed.">    if (leftTarget == null || rightTarget == null) {</span>
+<span class="nc" id="L808">      return null;</span>
+    }
+<span class="fc" id="L810">    AST.Asset target = getLCA(leftTarget, rightTarget);</span>
+<span class="fc bfc" id="L811" title="All 2 branches covered.">    if (target != null) {</span>
+<span class="fc" id="L812">      return target;</span>
+    } else {
+<span class="fc" id="L814">      error(</span>
+          expr,
+<span class="fc" id="L816">          String.format(</span>
+              &quot;Types '%s' and '%s' have no common ancestor&quot;,
+              leftTarget.name.id, rightTarget.name.id));
+<span class="fc" id="L819">      return null;</span>
+    }
+  }
+
+  private AST.Asset checkTransitiveExpr(AST.Asset asset, AST.TransitiveExpr expr) {
+<span class="fc" id="L824">    AST.Asset res = checkToAsset(asset, expr.e);</span>
+<span class="pc bpc" id="L825" title="1 of 2 branches missed.">    if (res == null) {</span>
+<span class="nc" id="L826">      return null;</span>
+    }
+<span class="fc bfc" id="L828" title="All 2 branches covered.">    if (isChild(res, asset)) {</span>
+<span class="fc" id="L829">      return res;</span>
+    } else {
+<span class="fc" id="L831">      error(</span>
+          expr,
+<span class="fc" id="L833">          String.format(&quot;Previous asset '%s' is not of type '%s'&quot;, asset.name.id, res.name.id));</span>
+<span class="fc" id="L834">      return null;</span>
+    }
+  }
+
+  private AST.Asset checkSubTypeExpr(AST.Asset asset, AST.SubTypeExpr expr) {
+<span class="fc" id="L839">    AST.Asset target = checkToAsset(asset, expr.e);</span>
+<span class="pc bpc" id="L840" title="1 of 2 branches missed.">    if (target == null) {</span>
+<span class="nc" id="L841">      return null;</span>
+    }
+<span class="fc" id="L843">    AST.Asset type = getAsset(expr.subType);</span>
+<span class="pc bpc" id="L844" title="1 of 2 branches missed.">    if (type == null) {</span>
+<span class="nc" id="L845">      return null;</span>
+    }
+<span class="fc bfc" id="L847" title="All 2 branches covered.">    if (isChild(target, type)) {</span>
+<span class="fc" id="L848">      return type;</span>
+    } else {
+<span class="fc" id="L850">      error(expr, String.format(&quot;Asset '%s' cannot be of type '%s'&quot;, target.name.id, type.name.id));</span>
+<span class="fc" id="L851">      return null;</span>
+    }
+  }
+
+  private AST.Asset getAsset(AST.ID name) {
+<span class="pc bpc" id="L856" title="1 of 2 branches missed.">    if (assets.containsKey(name.id)) {</span>
+<span class="fc" id="L857">      return assets.get(name.id);</span>
+    } else {
+<span class="nc" id="L859">      error(name, String.format(&quot;Asset '%s' not defined&quot;, name.id));</span>
+<span class="nc" id="L860">      return null;</span>
+    }
+  }
+
+  private AST.ID hasStep(AST.Asset asset, String name) {
+<span class="fc" id="L865">    Scope&lt;AST.AttackStep&gt; scope = steps.get(asset.name.id);</span>
+<span class="fc" id="L866">    AST.AttackStep attackStep = scope.lookdown(name);</span>
+<span class="pc bpc" id="L867" title="1 of 2 branches missed.">    if (attackStep != null) {</span>
+<span class="nc" id="L868">      return attackStep.name;</span>
+    } else {
+<span class="fc" id="L870">      return null;</span>
+    }
+  }
+
+  private AST.Asset getTarget(AST.Asset asset, AST.ID name) {
+<span class="fc" id="L875">    Scope&lt;AST.Association&gt; scope = fields.get(asset.name.id);</span>
+<span class="fc" id="L876">    AST.Association assoc = scope.lookdown(name.id);</span>
+<span class="fc bfc" id="L877" title="All 2 branches covered.">    if (assoc != null) {</span>
+<span class="fc" id="L878">      addFieldReference(assoc, name);</span>
+<span class="fc bfc" id="L879" title="All 2 branches covered.">      if (assoc.leftField.id.equals(name.id)) {</span>
+<span class="fc" id="L880">        return getAsset(assoc.leftAsset);</span>
+      } else {
+<span class="fc" id="L882">        return getAsset(assoc.rightAsset);</span>
+      }
+    } else {
+<span class="fc" id="L885">      String extra = &quot;&quot;;</span>
+<span class="fc" id="L886">      var varScope = assetVariables.get(asset.name.id).lookdown(name.id);</span>
+<span class="fc bfc" id="L887" title="All 2 branches covered.">      if (varScope != null) {</span>
+<span class="fc" id="L888">        extra =</span>
+<span class="fc" id="L889">            String.format(</span>
+<span class="fc" id="L890">                &quot;, did you mean the variable '%s()' defined at %s&quot;, name.id, varScope.posString());</span>
+      }
+<span class="fc" id="L892">      error(</span>
+          name,
+<span class="fc" id="L894">          String.format(&quot;Field '%s' not defined for asset '%s'%s&quot;, name.id, asset.name.id, extra));</span>
+<span class="fc" id="L895">      return null;</span>
+    }
+  }
+
+  private boolean isChild(AST.Asset parent, AST.Asset child) {
+<span class="fc bfc" id="L900" title="All 2 branches covered.">    if (parent.name.id.equals(child.name.id)) {</span>
+<span class="fc" id="L901">      return true;</span>
+<span class="fc bfc" id="L902" title="All 2 branches covered.">    } else if (child.parent.isEmpty()) {</span>
+<span class="fc" id="L903">      return false;</span>
+    } else {
+<span class="fc" id="L905">      AST.Asset childParent = getAsset(child.parent.get());</span>
+<span class="fc" id="L906">      return isChild(parent, childParent);</span>
+    }
+  }
+
+  private AST.Asset getLCA(AST.Asset left, AST.Asset right) {
+<span class="fc bfc" id="L911" title="All 2 branches covered.">    if (isChild(left, right)) {</span>
+<span class="fc" id="L912">      return left;</span>
+<span class="pc bpc" id="L913" title="1 of 2 branches missed.">    } else if (isChild(right, left)) {</span>
+<span class="nc" id="L914">      return right;</span>
+<span class="pc bpc" id="L915" title="2 of 4 branches missed.">    } else if (!left.parent.isPresent() &amp;&amp; !right.parent.isPresent()) {</span>
+<span class="fc" id="L916">      return null;</span>
+    } else {
+<span class="nc" id="L918">      AST.Asset lparent = getAsset(left.parent.orElse(left.name));</span>
+<span class="nc" id="L919">      AST.Asset rparent = getAsset(right.parent.orElse(right.name));</span>
+<span class="nc" id="L920">      return getLCA(lparent, rparent);</span>
+    }
+  }
+
+  private CompilerException exception() {
+<span class="fc" id="L925">    return new CompilerException(&quot;There were semantic errors&quot;);</span>
+  }
+
+  private void error(String msg) {
+<span class="fc" id="L929">    failed = true;</span>
+<span class="fc" id="L930">    LOGGER.error(msg);</span>
+<span class="fc" id="L931">  }</span>
+
+  private void error(Position pos, String msg) {
+<span class="fc" id="L934">    failed = true;</span>
+<span class="fc" id="L935">    LOGGER.error(pos, msg);</span>
+<span class="fc" id="L936">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MalLogger.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">MAL lib</a> &gt; <a href="index.source.html" class="el_package">org.mal_lang.lib</a> &gt; <span class="el_source">MalLogger.java</span></div><h1>MalLogger.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2019-2021 Foreseeti AB &lt;https://foreseeti.com&gt;
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.mal_lang.lib;
+
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
+public class MalLogger extends Logger {
+  @SuppressWarnings(&quot;serial&quot;)
+  private static class MalLevel extends Level {
+<span class="fc" id="L30">    public static final Level DEBUG = new MalLevel(&quot;DEBUG&quot;, Level.SEVERE.intValue() + 1);</span>
+<span class="fc" id="L31">    public static final Level INFO = new MalLevel(&quot;INFO&quot;, Level.SEVERE.intValue() + 2);</span>
+<span class="fc" id="L32">    public static final Level WARNING = new MalLevel(&quot;WARNING&quot;, Level.SEVERE.intValue() + 3);</span>
+<span class="fc" id="L33">    public static final Level ERROR = new MalLevel(&quot;ERROR&quot;, Level.SEVERE.intValue() + 4);</span>
+
+    private MalLevel(String name, int value) {
+<span class="fc" id="L36">      super(name, value);</span>
+<span class="fc" id="L37">    }</span>
+  }
+
+  private static class MalFormatter extends Formatter {
+    @Override
+    public String format(LogRecord record) {
+<span class="fc" id="L43">      StringBuffer sb = new StringBuffer();</span>
+<span class="fc" id="L44">      sb.append(printLevel(record.getLoggerName(), record.getLevel()));</span>
+<span class="fc" id="L45">      sb.append(&quot; &quot;);</span>
+<span class="fc" id="L46">      sb.append(record.getMessage());</span>
+<span class="fc" id="L47">      sb.append(String.format(&quot;%n&quot;));</span>
+<span class="fc" id="L48">      return sb.toString();</span>
+    }
+
+    private String printLevel(String loggerName, Level level) {
+<span class="fc" id="L52">      String colorInit = &quot;&quot;;</span>
+<span class="fc" id="L53">      String colorClear = &quot;&quot;;</span>
+
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">      if (System.console() != null) {</span>
+<span class="nc bnc" id="L56" title="All 5 branches missed.">        switch (level.getName()) {</span>
+          case &quot;ERROR&quot;:
+<span class="nc" id="L58">            colorInit = &quot;\u001B[1;31m&quot;;</span>
+<span class="nc" id="L59">            break;</span>
+          case &quot;WARNING&quot;:
+<span class="nc" id="L61">            colorInit = &quot;\u001B[1;33m&quot;;</span>
+<span class="nc" id="L62">            break;</span>
+          case &quot;INFO&quot;:
+<span class="nc" id="L64">            colorInit = &quot;\u001B[1;34m&quot;;</span>
+<span class="nc" id="L65">            break;</span>
+          case &quot;DEBUG&quot;:
+<span class="nc" id="L67">            colorInit = &quot;\u001B[1;36m&quot;;</span>
+<span class="nc" id="L68">            break;</span>
+          default:
+        }
+<span class="nc" id="L71">        colorClear = &quot;\u001B[m&quot;;</span>
+      }
+<span class="fc" id="L73">      return String.format(&quot;[%s%s %s%s]&quot;, colorInit, loggerName, level.getName(), colorClear);</span>
+    }
+  }
+
+  private class LogMessage implements Comparable&lt;LogMessage&gt; {
+    public final Level level;
+    public final String message;
+
+<span class="fc" id="L81">    public LogMessage(Level level, String message) {</span>
+<span class="fc" id="L82">      this.level = level;</span>
+<span class="fc" id="L83">      this.message = message;</span>
+<span class="fc" id="L84">    }</span>
+
+    @Override
+    public int compareTo(LogMessage o) {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">      if (o instanceof LogMessagePosition) {</span>
+<span class="fc" id="L89">        return -1;</span>
+      }
+<span class="fc" id="L91">      int cmp = Integer.compare(this.level.intValue(), o.level.intValue());</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">      if (cmp != 0) {</span>
+<span class="nc" id="L93">        return cmp;</span>
+      }
+<span class="fc" id="L95">      return this.message.compareTo(o.message);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L100">      return message;</span>
+    }
+  }
+
+  private class LogMessagePosition extends LogMessage {
+    public final Position position;
+
+<span class="fc" id="L107">    public LogMessagePosition(Level level, String message, Position position) {</span>
+<span class="fc" id="L108">      super(level, message);</span>
+<span class="fc" id="L109">      this.position = position;</span>
+<span class="fc" id="L110">    }</span>
+
+    @Override
+    public int compareTo(LogMessage o) {
+<span class="fc bfc" id="L114" title="All 2 branches covered.">      if (!(o instanceof LogMessagePosition)) {</span>
+<span class="fc" id="L115">        return 1;</span>
+      }
+<span class="fc" id="L117">      var other = (LogMessagePosition) o;</span>
+<span class="fc" id="L118">      int cmp = this.position.compareTo(other.position);</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">      if (cmp != 0) {</span>
+<span class="fc" id="L120">        return cmp;</span>
+      }
+<span class="fc" id="L122">      cmp = Integer.compare(this.level.intValue(), other.level.intValue());</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">      if (cmp != 0) {</span>
+<span class="nc" id="L124">        return cmp;</span>
+      }
+<span class="fc" id="L126">      return this.message.compareTo(other.message);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L131">      return String.format(&quot;%s %s&quot;, position.posString(), message);</span>
+    }
+  }
+
+  private boolean verbose;
+  private boolean debug;
+  private boolean isBuffered;
+
+<span class="fc" id="L139">  private Set&lt;LogMessage&gt; logMessages = new TreeSet&lt;&gt;();</span>
+
+  public MalLogger(String name) {
+<span class="nc" id="L142">    this(name, false, false);</span>
+<span class="nc" id="L143">  }</span>
+
+  public MalLogger(String name, boolean verbose, boolean debug) {
+<span class="fc" id="L146">    this(name, verbose, debug, true);</span>
+<span class="fc" id="L147">  }</span>
+
+  public MalLogger(String name, boolean verbose, boolean debug, boolean isBuffered) {
+<span class="fc" id="L150">    this(name, null);</span>
+<span class="fc" id="L151">    this.verbose = verbose;</span>
+<span class="fc" id="L152">    this.debug = debug;</span>
+<span class="fc" id="L153">    this.isBuffered = isBuffered;</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">    if (debug) {</span>
+<span class="nc" id="L155">      setLevel(MalLevel.DEBUG);</span>
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">    } else if (verbose) {</span>
+<span class="nc" id="L157">      setLevel(MalLevel.INFO);</span>
+    } else {
+<span class="fc" id="L159">      setLevel(MalLevel.WARNING);</span>
+    }
+<span class="fc" id="L161">  }</span>
+
+  private MalLogger(String name, String resourceBundleName) {
+<span class="fc" id="L164">    super(name, resourceBundleName);</span>
+<span class="fc" id="L165">    setUseParentHandlers(false);</span>
+<span class="fc" id="L166">    ConsoleHandler handler = new ConsoleHandler();</span>
+<span class="fc" id="L167">    handler.setFormatter(new MalFormatter());</span>
+<span class="fc" id="L168">    addHandler(handler);</span>
+<span class="fc" id="L169">  }</span>
+
+  public boolean isVerbose() {
+<span class="fc" id="L172">    return this.verbose;</span>
+  }
+
+  public boolean isDebug() {
+<span class="fc" id="L176">    return this.debug;</span>
+  }
+
+  public boolean isBuffered() {
+<span class="nc" id="L180">    return isBuffered;</span>
+  }
+
+  private void log(LogMessage logMessage) {
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">    if (isBuffered) {</span>
+<span class="fc" id="L185">      logMessages.add(logMessage);</span>
+    } else {
+<span class="nc" id="L187">      log(logMessage.level, logMessage.toString());</span>
+    }
+<span class="fc" id="L189">  }</span>
+
+  public void debug(Position pos, String msg) {
+<span class="nc" id="L192">    log(new LogMessagePosition(MalLevel.DEBUG, msg, pos));</span>
+<span class="nc" id="L193">  }</span>
+
+  public void debug(String msg) {
+<span class="fc" id="L196">    log(new LogMessage(MalLevel.DEBUG, msg));</span>
+<span class="fc" id="L197">  }</span>
+
+  public void info(Position pos, String msg) {
+<span class="nc" id="L200">    log(new LogMessagePosition(MalLevel.INFO, msg, pos));</span>
+<span class="nc" id="L201">  }</span>
+
+  @Override
+  public void info(String msg) {
+<span class="nc" id="L205">    log(new LogMessage(MalLevel.INFO, msg));</span>
+<span class="nc" id="L206">  }</span>
+
+  public void warning(Position pos, String msg) {
+<span class="fc" id="L209">    log(new LogMessagePosition(MalLevel.WARNING, msg, pos));</span>
+<span class="fc" id="L210">  }</span>
+
+  @Override
+  public void warning(String msg) {
+<span class="nc" id="L214">    log(new LogMessage(MalLevel.WARNING, msg));</span>
+<span class="nc" id="L215">  }</span>
+
+  public void error(Position pos, String msg) {
+<span class="fc" id="L218">    log(new LogMessagePosition(MalLevel.ERROR, msg, pos));</span>
+<span class="fc" id="L219">  }</span>
+
+  public void error(String msg) {
+<span class="fc" id="L222">    log(new LogMessage(MalLevel.ERROR, msg));</span>
+<span class="fc" id="L223">  }</span>
+
+  public void print() {
+<span class="fc bfc" id="L226" title="All 2 branches covered.">    for (var logMessage : logMessages) {</span>
+<span class="fc" id="L227">      log(logMessage.level, logMessage.toString());</span>
+<span class="fc" id="L228">    }</span>
+<span class="fc" id="L229">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

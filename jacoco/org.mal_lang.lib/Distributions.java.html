@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Distributions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">MAL lib</a> &gt; <a href="index.source.html" class="el_package">org.mal_lang.lib</a> &gt; <span class="el_source">Distributions.java</span></div><h1>Distributions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2019-2021 Foreseeti AB &lt;https://foreseeti.com&gt;
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.mal_lang.lib;
+
+import java.util.List;
+
+<span class="nc" id="L21">public class Distributions {</span>
+
+  public static void validate(String name, List&lt;Double&gt; params) throws CompilerException {
+<span class="fc bfc" id="L24" title="All 10 branches covered.">    switch (name) {</span>
+      case &quot;Bernoulli&quot;:
+<span class="fc" id="L26">        Bernoulli.validate(params);</span>
+<span class="fc" id="L27">        break;</span>
+      case &quot;Binomial&quot;:
+<span class="fc" id="L29">        Binomial.validate(params);</span>
+<span class="fc" id="L30">        break;</span>
+      case &quot;Exponential&quot;:
+<span class="fc" id="L32">        Exponential.validate(params);</span>
+<span class="fc" id="L33">        break;</span>
+      case &quot;Gamma&quot;:
+<span class="fc" id="L35">        Gamma.validate(params);</span>
+<span class="fc" id="L36">        break;</span>
+      case &quot;LogNormal&quot;:
+<span class="fc" id="L38">        LogNormal.validate(params);</span>
+<span class="fc" id="L39">        break;</span>
+      case &quot;Pareto&quot;:
+<span class="fc" id="L41">        Pareto.validate(params);</span>
+<span class="fc" id="L42">        break;</span>
+      case &quot;TruncatedNormal&quot;:
+<span class="fc" id="L44">        TruncatedNormal.validate(params);</span>
+<span class="fc" id="L45">        break;</span>
+      case &quot;Uniform&quot;:
+<span class="fc" id="L47">        Uniform.validate(params);</span>
+<span class="fc" id="L48">        break;</span>
+      case &quot;EasyAndCertain&quot;:
+      case &quot;EasyAndUncertain&quot;:
+      case &quot;HardAndCertain&quot;:
+      case &quot;HardAndUncertain&quot;:
+      case &quot;VeryHardAndCertain&quot;:
+      case &quot;VeryHardAndUncertain&quot;:
+      case &quot;Infinity&quot;:
+      case &quot;Zero&quot;:
+      case &quot;Enabled&quot;:
+      case &quot;Disabled&quot;:
+<span class="fc" id="L59">        Combination.validate(params);</span>
+<span class="fc" id="L60">        break;</span>
+      default:
+<span class="fc" id="L62">        throw new CompilerException(String.format(&quot;Distribution '%s' is not supported&quot;, name));</span>
+    }
+<span class="fc" id="L64">  }</span>
+
+  public static Distribution getDistribution(String name, List&lt;Double&gt; params) {
+<span class="nc bnc" id="L67" title="All 19 branches missed.">    switch (name) {</span>
+      case &quot;Bernoulli&quot;:
+<span class="nc" id="L69">        return new Bernoulli(params);</span>
+      case &quot;Binomial&quot;:
+<span class="nc" id="L71">        return new Binomial(params);</span>
+      case &quot;Exponential&quot;:
+<span class="nc" id="L73">        return new Exponential(params);</span>
+      case &quot;Gamma&quot;:
+<span class="nc" id="L75">        return new Gamma(params);</span>
+      case &quot;LogNormal&quot;:
+<span class="nc" id="L77">        return new LogNormal(params);</span>
+      case &quot;Pareto&quot;:
+<span class="nc" id="L79">        return new Pareto(params);</span>
+      case &quot;TruncatedNormal&quot;:
+<span class="nc" id="L81">        return new TruncatedNormal(params);</span>
+      case &quot;Uniform&quot;:
+<span class="nc" id="L83">        return new Uniform(params);</span>
+      case &quot;EasyAndCertain&quot;:
+<span class="nc" id="L85">        return new EasyAndCertain();</span>
+      case &quot;EasyAndUncertain&quot;:
+<span class="nc" id="L87">        return new EasyAndUncertain();</span>
+      case &quot;HardAndCertain&quot;:
+<span class="nc" id="L89">        return new HardAndCertain();</span>
+      case &quot;HardAndUncertain&quot;:
+<span class="nc" id="L91">        return new HardAndUncertain();</span>
+      case &quot;VeryHardAndCertain&quot;:
+<span class="nc" id="L93">        return new VeryHardAndCertain();</span>
+      case &quot;VeryHardAndUncertain&quot;:
+<span class="nc" id="L95">        return new VeryHardAndUncertain();</span>
+      case &quot;Infinity&quot;:
+<span class="nc" id="L97">        return new Infinity();</span>
+      case &quot;Zero&quot;:
+<span class="nc" id="L99">        return new Zero();</span>
+      case &quot;Enabled&quot;:
+<span class="nc" id="L101">        return new Enabled();</span>
+      case &quot;Disabled&quot;:
+<span class="nc" id="L103">        return new Disabled();</span>
+      default:
+<span class="nc" id="L105">        throw new RuntimeException(String.format(&quot;Distribution '%s' is not supported&quot;, name));</span>
+    }
+  }
+
+  public interface Distribution {
+    double getMean();
+  }
+
+  public static class Bernoulli implements Distribution {
+    public final double probability;
+
+<span class="nc" id="L116">    public Bernoulli(double probability) {</span>
+<span class="nc" id="L117">      this.probability = probability;</span>
+<span class="nc" id="L118">    }</span>
+
+    public Bernoulli(List&lt;Double&gt; params) {
+<span class="nc" id="L121">      this(params.get(0));</span>
+<span class="nc" id="L122">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L125" title="1 of 4 branches missed.">      if (params == null || params.size() != 1) {</span>
+<span class="fc" id="L126">        throw new CompilerException(</span>
+            &quot;Expected exactly one parameter (probability), for Bernoulli distribution&quot;);
+<span class="fc bfc" id="L128" title="All 2 branches covered.">      } else if (params.get(0) &gt; 1) {</span>
+<span class="fc" id="L129">        throw new CompilerException(</span>
+<span class="fc" id="L130">            String.format(</span>
+                &quot;%s is not in valid range '0 &lt;= probability &lt;= 1', for Bernoulli distribution&quot;,
+<span class="fc" id="L132">                params.get(0)));</span>
+      }
+<span class="fc" id="L134">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L138">      return probability;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L143">      return String.format(&quot;Bernoulli(%f)&quot;, probability);</span>
+    }
+  }
+
+  public static class Binomial implements Distribution {
+    public final int trials;
+    public final double probability;
+
+<span class="nc" id="L151">    public Binomial(int trials, double probability) {</span>
+<span class="nc" id="L152">      this.trials = trials;</span>
+<span class="nc" id="L153">      this.probability = probability;</span>
+<span class="nc" id="L154">    }</span>
+
+    public Binomial(List&lt;Double&gt; params) {
+<span class="nc" id="L157">      this((int) Math.round(params.get(0)), params.get(1));</span>
+<span class="nc" id="L158">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L161" title="1 of 4 branches missed.">      if (params == null || params.size() != 2) {</span>
+<span class="fc" id="L162">        throw new CompilerException(</span>
+            &quot;Expected exactly two parameters (trials, probability), for Binomial distribution&quot;);
+<span class="fc bfc" id="L164" title="All 2 branches covered.">      } else if (params.get(1) &gt; 1) {</span>
+<span class="fc" id="L165">        throw new CompilerException(</span>
+<span class="fc" id="L166">            String.format(</span>
+                &quot;%s is not in valid range '0 &lt;= probability &lt;= 1', for Binomial distribution&quot;,
+<span class="fc" id="L168">                params.get(1)));</span>
+      }
+<span class="fc" id="L170">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L174">      return trials * probability;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L179">      return String.format(&quot;Binomial(%d, %f)&quot;, trials, probability);</span>
+    }
+  }
+
+  public static class Exponential implements Distribution {
+    public final double lambda;
+
+<span class="nc" id="L186">    public Exponential(double lambda) {</span>
+<span class="nc" id="L187">      this.lambda = lambda;</span>
+<span class="nc" id="L188">    }</span>
+
+    public Exponential(List&lt;Double&gt; params) {
+<span class="nc" id="L191">      this(params.get(0));</span>
+<span class="nc" id="L192">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L195" title="1 of 4 branches missed.">      if (params == null || params.size() != 1) {</span>
+<span class="fc" id="L196">        throw new CompilerException(</span>
+            &quot;Expected exactly one parameter (lambda), for Exponential distribution&quot;);
+<span class="fc bfc" id="L198" title="All 2 branches covered.">      } else if (params.get(0) &lt;= 0) {</span>
+<span class="fc" id="L199">        throw new CompilerException(</span>
+<span class="fc" id="L200">            String.format(</span>
+                &quot;%s is not in valid range 'lambda &gt; 0', for Exponential distribution&quot;,
+<span class="fc" id="L202">                params.get(0)));</span>
+      }
+<span class="fc" id="L204">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L208">      return 1 / lambda;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L213">      return String.format(&quot;Exponential(%f)&quot;, lambda);</span>
+    }
+  }
+
+  public static class Gamma implements Distribution {
+    public final double shape;
+    public final double scale;
+
+<span class="nc" id="L221">    public Gamma(double shape, double scale) {</span>
+<span class="nc" id="L222">      this.shape = shape;</span>
+<span class="nc" id="L223">      this.scale = scale;</span>
+<span class="nc" id="L224">    }</span>
+
+    public Gamma(List&lt;Double&gt; params) {
+<span class="nc" id="L227">      this(params.get(0), params.get(1));</span>
+<span class="nc" id="L228">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L231" title="1 of 4 branches missed.">      if (params == null || params.size() != 2) {</span>
+<span class="fc" id="L232">        throw new CompilerException(</span>
+            &quot;Expected exactly two parameters (shape, scale), for Gamma distribution&quot;);
+<span class="fc bfc" id="L234" title="All 2 branches covered.">      } else if (params.get(0) &lt;= 0) {</span>
+<span class="fc" id="L235">        throw new CompilerException(</span>
+<span class="fc" id="L236">            String.format(</span>
+<span class="fc" id="L237">                &quot;%s is not in valid range 'shape &gt; 0', for Gamma distribution&quot;, params.get(0)));</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">      } else if (params.get(1) &lt;= 0) {</span>
+<span class="fc" id="L239">        throw new CompilerException(</span>
+<span class="fc" id="L240">            String.format(</span>
+<span class="fc" id="L241">                &quot;%s is not in valid range 'scale &gt; 0', for Gamma distribution&quot;, params.get(1)));</span>
+      }
+<span class="fc" id="L243">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L247">      return shape * scale;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L252">      return String.format(&quot;Gamma(%f, %f)&quot;, shape, scale);</span>
+    }
+  }
+
+  public static class LogNormal implements Distribution {
+    public final double mean;
+    public final double standardDeviation;
+
+<span class="nc" id="L260">    public LogNormal(double mean, double standardDeviation) {</span>
+<span class="nc" id="L261">      this.mean = mean;</span>
+<span class="nc" id="L262">      this.standardDeviation = standardDeviation;</span>
+<span class="nc" id="L263">    }</span>
+
+    public LogNormal(List&lt;Double&gt; params) {
+<span class="nc" id="L266">      this(params.get(0), params.get(1));</span>
+<span class="nc" id="L267">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L270" title="1 of 4 branches missed.">      if (params == null || params.size() != 2) {</span>
+<span class="fc" id="L271">        throw new CompilerException(</span>
+            &quot;Expected exactly two parameters (mean, standardDeviation), for LogNormal&quot;
+                + &quot; distribution&quot;);
+<span class="fc bfc" id="L274" title="All 2 branches covered.">      } else if (params.get(1) &lt;= 0) {</span>
+<span class="fc" id="L275">        throw new CompilerException(</span>
+<span class="fc" id="L276">            String.format(</span>
+                &quot;%s is not in valid range 'standardDeviation &gt; 0', for LogNormal distribution&quot;,
+<span class="fc" id="L278">                params.get(1)));</span>
+      }
+<span class="fc" id="L280">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L284">      return Math.exp(mean + Math.pow(standardDeviation, 2) / 2);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L289">      return String.format(&quot;LogNormal(%f, %f)&quot;, mean, standardDeviation);</span>
+    }
+  }
+
+  public static class Pareto implements Distribution {
+    public final double min;
+    public final double shape;
+
+<span class="nc" id="L297">    public Pareto(double min, double shape) {</span>
+<span class="nc" id="L298">      this.min = min;</span>
+<span class="nc" id="L299">      this.shape = shape;</span>
+<span class="nc" id="L300">    }</span>
+
+    public Pareto(List&lt;Double&gt; params) {
+<span class="nc" id="L303">      this(params.get(0), params.get(1));</span>
+<span class="nc" id="L304">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L307" title="1 of 4 branches missed.">      if (params == null || params.size() != 2) {</span>
+<span class="fc" id="L308">        throw new CompilerException(</span>
+            &quot;Expected exactly two parameters (min, shape), for Pareto distribution&quot;);
+<span class="fc bfc" id="L310" title="All 2 branches covered.">      } else if (params.get(0) &lt;= 0) {</span>
+<span class="fc" id="L311">        throw new CompilerException(</span>
+<span class="fc" id="L312">            String.format(</span>
+<span class="fc" id="L313">                &quot;%s is not in valid range 'min &gt; 0', for Pareto distribution&quot;, params.get(0)));</span>
+<span class="fc bfc" id="L314" title="All 2 branches covered.">      } else if (params.get(1) &lt;= 0) {</span>
+<span class="fc" id="L315">        throw new CompilerException(</span>
+<span class="fc" id="L316">            String.format(</span>
+<span class="fc" id="L317">                &quot;%s is not in valid range 'shape &gt; 0', for Pareto distribution&quot;, params.get(1)));</span>
+      }
+<span class="fc" id="L319">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc bnc" id="L323" title="All 2 branches missed.">      if (min &lt;= 1) {</span>
+<span class="nc" id="L324">        return Double.MAX_VALUE;</span>
+      } else {
+<span class="nc" id="L326">        return (min * shape) / (min - 1);</span>
+      }
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L332">      return String.format(&quot;Pareto(%f, %f)&quot;, min, shape);</span>
+    }
+  }
+
+  public static class TruncatedNormal implements Distribution {
+    public final double mean;
+    public final double standardDeviation;
+
+<span class="nc" id="L340">    public TruncatedNormal(double mean, double standardDeviation) {</span>
+<span class="nc" id="L341">      this.mean = mean;</span>
+<span class="nc" id="L342">      this.standardDeviation = standardDeviation;</span>
+<span class="nc" id="L343">    }</span>
+
+    public TruncatedNormal(List&lt;Double&gt; params) {
+<span class="nc" id="L346">      this(params.get(0), params.get(1));</span>
+<span class="nc" id="L347">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L350" title="1 of 4 branches missed.">      if (params == null || params.size() != 2) {</span>
+<span class="fc" id="L351">        throw new CompilerException(</span>
+            &quot;Expected exactly two parameters (mean, standardDeviation), for TruncatedNormal&quot;
+                + &quot; distribution&quot;);
+<span class="fc bfc" id="L354" title="All 2 branches covered.">      } else if (params.get(1) &lt;= 0) {</span>
+<span class="fc" id="L355">        throw new CompilerException(</span>
+<span class="fc" id="L356">            String.format(</span>
+                &quot;%s is not in valid range 'standardDeviation &gt; 0', for TruncatedNormal&quot;
+                    + &quot; distribution&quot;,
+<span class="fc" id="L359">                params.get(1)));</span>
+      }
+<span class="fc" id="L361">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L365">      return mean;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L370">      return String.format(&quot;TruncatedNormal(%f, %f)&quot;, mean, standardDeviation);</span>
+    }
+  }
+
+  public static class Uniform implements Distribution {
+    public final double min;
+    public final double max;
+
+<span class="nc" id="L378">    public Uniform(double min, double max) {</span>
+<span class="nc" id="L379">      this.min = min;</span>
+<span class="nc" id="L380">      this.max = max;</span>
+<span class="nc" id="L381">    }</span>
+
+    public Uniform(List&lt;Double&gt; params) {
+<span class="nc" id="L384">      this(params.get(0), params.get(1));</span>
+<span class="nc" id="L385">    }</span>
+
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L388" title="1 of 4 branches missed.">      if (params == null || params.size() != 2) {</span>
+<span class="fc" id="L389">        throw new CompilerException(</span>
+            &quot;Expected exactly two parameters (min, max), for Uniform distribution&quot;);
+<span class="fc bfc" id="L391" title="All 2 branches covered.">      } else if (params.get(0) &gt; params.get(1)) {</span>
+<span class="fc" id="L392">        throw new CompilerException(</span>
+<span class="fc" id="L393">            String.format(</span>
+                &quot;(%s, %s) does not meet requirement 'min &lt;= max', for Uniform distribution&quot;,
+<span class="fc" id="L395">                params.get(0), params.get(1)));</span>
+      }
+<span class="fc" id="L397">    }</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L401">      return (min + max) / 2;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L406">      return String.format(&quot;Uniform(%f, %f)&quot;, min, max);</span>
+    }
+  }
+
+  /*Custom, combinations of above defined distributions*/
+
+  private abstract static class Combination implements Distribution {
+    public static void validate(List&lt;Double&gt; params) throws CompilerException {
+<span class="pc bpc" id="L414" title="1 of 4 branches missed.">      if (params != null &amp;&amp; params.size() != 0) {</span>
+<span class="fc" id="L415">        throw new CompilerException(</span>
+<span class="fc" id="L416">            String.format(&quot;Expected exactly zero parameters, for combination distributions&quot;));</span>
+      }
+<span class="fc" id="L418">    }</span>
+  }
+
+<span class="nc" id="L421">  public static class EasyAndCertain extends Combination {</span>
+<span class="nc" id="L422">    public static final Exponential exponential = new Exponential(1);</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L426">      return exponential.getMean();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L431">      return &quot;EasyAndCertain&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L435">  public static class EasyAndUncertain extends Combination {</span>
+<span class="nc" id="L436">    public static final Bernoulli bernoulli = new Bernoulli(0.5);</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L440">      return bernoulli.getMean();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L445">      return &quot;EasyAndUncertain&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L449">  public static class HardAndCertain extends Combination {</span>
+<span class="nc" id="L450">    public static final Exponential exponential = new Exponential(0.1);</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L454">      return exponential.getMean();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L459">      return &quot;HardAndCertain&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L463">  public static class HardAndUncertain extends Combination {</span>
+<span class="nc" id="L464">    public static final Bernoulli bernoulli = new Bernoulli(0.5);</span>
+<span class="nc" id="L465">    public static final Exponential exponential = new Exponential(0.1);</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L469">      return bernoulli.getMean() * exponential.getMean();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L474">      return &quot;HardAndUncertain&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L478">  public static class VeryHardAndCertain extends Combination {</span>
+<span class="nc" id="L479">    public static final Exponential exponential = new Exponential(0.01);</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L483">      return exponential.getMean();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L488">      return &quot;VeryHardAndCertain&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L492">  public static class VeryHardAndUncertain extends Combination {</span>
+<span class="nc" id="L493">    public static final Bernoulli bernoulli = new Bernoulli(0.5);</span>
+<span class="nc" id="L494">    public static final Exponential exponential = new Exponential(0.01);</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L498">      return bernoulli.getMean() * exponential.getMean();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L503">      return &quot;VeryHardAndUncertain&quot;;</span>
+    }
+  }
+
+  public static class Infinity extends Combination {
+<span class="nc" id="L508">    public Infinity() {}</span>
+
+    @Override
+    public double getMean() {
+<span class="nc" id="L512">      return Double.MAX_VALUE;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L517">      return &quot;Infinity&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L521">  public static class Zero extends Combination {</span>
+    @Override
+    public double getMean() {
+<span class="nc" id="L524">      return 0;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L529">      return &quot;Zero&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L533">  public static class Enabled extends Combination {</span>
+    @Override
+    public double getMean() {
+<span class="nc" id="L536">      return 1;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L541">      return &quot;Enabled&quot;;</span>
+    }
+  }
+
+<span class="nc" id="L545">  public static class Disabled extends Combination {</span>
+    @Override
+    public double getMean() {
+<span class="nc" id="L548">      return 0;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L553">      return &quot;Disabled&quot;;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

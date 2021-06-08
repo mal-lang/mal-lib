@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Parser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">MAL lib</a> &gt; <a href="index.source.html" class="el_package">org.mal_lang.lib</a> &gt; <span class="el_source">Parser.java</span></div><h1>Parser.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2019-2021 Foreseeti AB &lt;https://foreseeti.com&gt;
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.mal_lang.lib;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+
+public class Parser {
+  private MalLogger LOGGER;
+  private Lexer lex;
+  private Token tok;
+  private Set&lt;File&gt; included;
+  private File currentFile;
+  private Path originPath;
+
+<span class="fc" id="L37">  private Parser(File file, boolean verbose, boolean debug) throws IOException {</span>
+<span class="fc" id="L38">    Locale.setDefault(Locale.ROOT);</span>
+<span class="fc" id="L39">    LOGGER = new MalLogger(&quot;PARSER&quot;, verbose, debug);</span>
+<span class="fc" id="L40">    var canonicalFile = file.getCanonicalFile();</span>
+<span class="fc" id="L41">    this.lex = new Lexer(canonicalFile);</span>
+<span class="fc" id="L42">    this.included = new HashSet&lt;File&gt;();</span>
+<span class="fc" id="L43">    this.included.add(canonicalFile);</span>
+<span class="fc" id="L44">    this.currentFile = canonicalFile;</span>
+<span class="fc" id="L45">    this.originPath = Path.of(canonicalFile.getParent());</span>
+<span class="fc" id="L46">  }</span>
+
+  private Parser(File file, Path originPath, Set&lt;File&gt; included, boolean verbose, boolean debug)
+<span class="fc" id="L49">      throws IOException {</span>
+<span class="fc" id="L50">    Locale.setDefault(Locale.ROOT);</span>
+<span class="fc" id="L51">    LOGGER = new MalLogger(&quot;PARSER&quot;, verbose, debug);</span>
+<span class="fc" id="L52">    this.lex = new Lexer(file, originPath.relativize(Path.of(file.getPath())).toString());</span>
+<span class="fc" id="L53">    this.included = included;</span>
+<span class="fc" id="L54">    this.included.add(file);</span>
+<span class="fc" id="L55">    this.currentFile = file;</span>
+<span class="fc" id="L56">    this.originPath = originPath;</span>
+<span class="fc" id="L57">  }</span>
+
+  public static AST parse(File file) throws IOException, CompilerException {
+<span class="fc" id="L60">    return parse(file, false, false);</span>
+  }
+
+  public static AST parse(File file, boolean verbose, boolean debug)
+      throws IOException, CompilerException {
+<span class="fc" id="L65">    return new Parser(file, verbose, debug).parseLog();</span>
+  }
+
+  private static AST parse(
+      File file, Path originPath, Set&lt;File&gt; included, boolean verbose, boolean debug)
+      throws IOException, CompilerException {
+<span class="fc" id="L71">    return new Parser(file, originPath, included, verbose, debug).parseLog();</span>
+  }
+
+  private AST parseLog() throws CompilerException {
+    try {
+<span class="fc" id="L76">      var ast = _parse();</span>
+<span class="fc" id="L77">      LOGGER.print();</span>
+<span class="fc" id="L78">      return ast;</span>
+<span class="fc" id="L79">    } catch (CompilerException e) {</span>
+<span class="fc" id="L80">      LOGGER.print();</span>
+<span class="fc" id="L81">      throw e;</span>
+    }
+  }
+
+  // The first set of &lt;mal&gt;
+<span class="fc" id="L86">  private static TokenType[] malFirst = {</span>
+    TokenType.CATEGORY, TokenType.ASSOCIATIONS, TokenType.INCLUDE, TokenType.HASH
+  };
+
+  // The first set of &lt;asset&gt;
+<span class="fc" id="L91">  private static TokenType[] assetFirst = {TokenType.ABSTRACT, TokenType.ASSET};</span>
+
+  // The first set of &lt;attackstep&gt;
+<span class="fc" id="L94">  private static TokenType[] attackStepFirst = {</span>
+    TokenType.ALL, TokenType.ANY, TokenType.HASH, TokenType.EXIST, TokenType.NOTEXIST
+  };
+
+  private void _next() throws CompilerException {
+<span class="fc" id="L99">    tok = lex.next();</span>
+<span class="fc" id="L100">  }</span>
+
+  private void _expect(TokenType type) throws CompilerException {
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (tok.type != type) {</span>
+<span class="fc" id="L104">      throw exception(type);</span>
+    }
+<span class="fc" id="L106">    _next();</span>
+<span class="fc" id="L107">  }</span>
+
+  // &lt;mal&gt; ::= (&lt;category&gt; | &lt;associations&gt; | &lt;include&gt; | &lt;define&gt;)* EOF
+  private AST _parse() throws CompilerException {
+<span class="fc" id="L111">    var ast = new AST();</span>
+<span class="fc" id="L112">    _next();</span>
+
+    while (true) {
+<span class="fc bfc" id="L115" title="All 6 branches covered.">      switch (tok.type) {</span>
+        case CATEGORY:
+<span class="fc" id="L117">          var category = _parseCategory();</span>
+<span class="fc" id="L118">          ast.addCategory(category);</span>
+<span class="fc" id="L119">          break;</span>
+        case ASSOCIATIONS:
+<span class="fc" id="L121">          var associations = _parseAssociations();</span>
+<span class="fc" id="L122">          ast.addAssociations(associations);</span>
+<span class="fc" id="L123">          break;</span>
+        case INCLUDE:
+<span class="fc" id="L125">          var include = _parseInclude();</span>
+<span class="fc" id="L126">          ast.include(include);</span>
+<span class="fc" id="L127">          break;</span>
+        case HASH:
+<span class="fc" id="L129">          var define = _parseDefine();</span>
+<span class="fc" id="L130">          ast.addDefine(define);</span>
+<span class="fc" id="L131">          break;</span>
+        case EOF:
+<span class="fc" id="L133">          return ast;</span>
+        default:
+<span class="fc" id="L135">          throw exception(malFirst);</span>
+      }
+    }
+  }
+
+  // ID
+  private AST.ID _parseID() throws CompilerException {
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    switch (tok.type) {</span>
+      case ID:
+<span class="fc" id="L144">        var id = new AST.ID(tok, tok.stringValue);</span>
+<span class="fc" id="L145">        _next();</span>
+<span class="fc" id="L146">        return id;</span>
+      default:
+<span class="fc" id="L148">        throw exception(TokenType.ID);</span>
+    }
+  }
+
+  // STRING
+  private String _parseString() throws CompilerException {
+<span class="fc bfc" id="L154" title="All 2 branches covered.">    switch (tok.type) {</span>
+      case STRING:
+<span class="fc" id="L156">        var str = tok.stringValue;</span>
+<span class="fc" id="L157">        _next();</span>
+<span class="fc" id="L158">        return str;</span>
+      default:
+<span class="fc" id="L160">        throw exception(TokenType.STRING);</span>
+    }
+  }
+
+  // &lt;define&gt; ::= HASH ID COLON STRING
+  private AST.Define _parseDefine() throws CompilerException {
+<span class="fc" id="L166">    var firstToken = tok;</span>
+
+<span class="fc" id="L168">    _expect(TokenType.HASH);</span>
+<span class="fc" id="L169">    var key = _parseID();</span>
+<span class="fc" id="L170">    _expect(TokenType.COLON);</span>
+<span class="fc" id="L171">    var value = _parseString();</span>
+<span class="fc" id="L172">    return new AST.Define(firstToken, key, value);</span>
+  }
+
+  // &lt;meta1&gt; ::= ID &lt;meta2&gt;
+  private AST.Meta _parseMeta1() throws CompilerException {
+<span class="fc" id="L177">    var type = _parseID();</span>
+<span class="fc" id="L178">    return _parseMeta2(type);</span>
+  }
+
+  // &lt;meta2&gt; ::= INFO COLON STRING
+  private AST.Meta _parseMeta2(AST.ID type) throws CompilerException {
+<span class="fc" id="L183">    _expect(TokenType.INFO);</span>
+<span class="fc" id="L184">    _expect(TokenType.COLON);</span>
+<span class="fc" id="L185">    var value = _parseString();</span>
+<span class="fc" id="L186">    return new AST.Meta(type, type, value);</span>
+  }
+
+  // &lt;meta1&gt;*
+  private List&lt;AST.Meta&gt; _parseMeta1List() throws CompilerException {
+<span class="fc" id="L191">    var meta = new ArrayList&lt;AST.Meta&gt;();</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">    while (tok.type == TokenType.ID) {</span>
+<span class="fc" id="L193">      meta.add(_parseMeta1());</span>
+    }
+<span class="fc" id="L195">    return meta;</span>
+  }
+
+  // &lt;include&gt; ::= INCLUDE STRING
+  private AST _parseInclude() throws CompilerException {
+<span class="fc" id="L200">    _expect(TokenType.INCLUDE);</span>
+<span class="fc" id="L201">    var firstTok = tok;</span>
+<span class="fc" id="L202">    var filename = _parseString();</span>
+<span class="fc" id="L203">    var file = new File(filename);</span>
+
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">    if (!file.isAbsolute()) {</span>
+<span class="fc" id="L206">      var currentDir = currentFile.getParent();</span>
+<span class="fc" id="L207">      file = new File(String.format(&quot;%s/%s&quot;, currentDir, filename));</span>
+    }
+
+    try {
+<span class="fc" id="L211">      file = file.getCanonicalFile();</span>
+<span class="nc" id="L212">    } catch (IOException e) {</span>
+<span class="nc" id="L213">      throw exception(firstTok, e.getMessage());</span>
+<span class="fc" id="L214">    }</span>
+
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (included.contains(file)) {</span>
+<span class="fc" id="L217">      return new AST();</span>
+    } else {
+      try {
+<span class="fc" id="L220">        return Parser.parse(file, originPath, included, LOGGER.isVerbose(), LOGGER.isDebug());</span>
+<span class="fc" id="L221">      } catch (IOException e) {</span>
+<span class="fc" id="L222">        throw exception(firstTok, e.getMessage());</span>
+      }
+    }
+  }
+
+  // &lt;number&gt; ::= INT | FLOAT
+  private double _parseNumber() throws CompilerException {
+<span class="fc" id="L229">    double val = 0.0;</span>
+<span class="pc bpc" id="L230" title="1 of 3 branches missed.">    switch (tok.type) {</span>
+      case INT:
+<span class="fc" id="L232">        val = tok.intValue;</span>
+<span class="fc" id="L233">        _next();</span>
+<span class="fc" id="L234">        return val;</span>
+      case FLOAT:
+<span class="fc" id="L236">        val = tok.doubleValue;</span>
+<span class="fc" id="L237">        _next();</span>
+<span class="fc" id="L238">        return val;</span>
+      default:
+<span class="nc" id="L240">        throw exception(TokenType.INT, TokenType.FLOAT);</span>
+    }
+  }
+
+  // &lt;category&gt; ::= CATEGORY ID &lt;meta1&gt;* LCURLY &lt;asset&gt;* RCURLY
+  private AST.Category _parseCategory() throws CompilerException {
+<span class="fc" id="L246">    var firstToken = tok;</span>
+
+<span class="fc" id="L248">    _expect(TokenType.CATEGORY);</span>
+<span class="fc" id="L249">    var name = _parseID();</span>
+<span class="fc" id="L250">    var meta = _parseMeta1List();</span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">    if (tok.type == TokenType.LCURLY) {</span>
+<span class="fc" id="L252">      _next();</span>
+    } else {
+<span class="nc" id="L254">      throw exception(TokenType.ID, TokenType.LCURLY);</span>
+    }
+<span class="fc" id="L256">    var assets = _parseAssetList();</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">    if (tok.type == TokenType.RCURLY) {</span>
+<span class="fc" id="L258">      _next();</span>
+    } else {
+<span class="fc" id="L260">      throw exception(assetFirst, TokenType.RCURLY);</span>
+    }
+<span class="fc" id="L262">    return new AST.Category(firstToken, name, meta, assets);</span>
+  }
+
+  // &lt;asset&gt; ::=
+  //           ABSTRACT? ASSET ID (EXTENDS ID)? &lt;meta1&gt;* LCURLY (&lt;attackstep&gt; | &lt;variable&gt;)* RCURLY
+  private AST.Asset _parseAsset() throws CompilerException {
+<span class="fc" id="L268">    var firstToken = tok;</span>
+
+<span class="fc" id="L270">    var isAbstract = false;</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">    if (tok.type == TokenType.ABSTRACT) {</span>
+<span class="fc" id="L272">      isAbstract = true;</span>
+<span class="fc" id="L273">      _next();</span>
+    }
+<span class="fc" id="L275">    _expect(TokenType.ASSET);</span>
+<span class="fc" id="L276">    var name = _parseID();</span>
+<span class="fc" id="L277">    Optional&lt;AST.ID&gt; parent = Optional.empty();</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">    if (tok.type == TokenType.EXTENDS) {</span>
+<span class="fc" id="L279">      _next();</span>
+<span class="fc" id="L280">      parent = Optional.of(_parseID());</span>
+    }
+<span class="fc" id="L282">    var meta = _parseMeta1List();</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">    if (tok.type == TokenType.LCURLY) {</span>
+<span class="fc" id="L284">      _next();</span>
+    } else {
+<span class="nc" id="L286">      throw exception(TokenType.ID, TokenType.LCURLY);</span>
+    }
+<span class="fc" id="L288">    var attackSteps = new ArrayList&lt;AST.AttackStep&gt;();</span>
+<span class="fc" id="L289">    var variables = new ArrayList&lt;AST.Variable&gt;();</span>
+    loop:
+    while (true) {
+<span class="fc bfc" id="L292" title="All 4 branches covered.">      switch (tok.type) {</span>
+        case LET:
+<span class="fc" id="L294">          variables.add(_parseVariable());</span>
+<span class="fc" id="L295">          break;</span>
+        case ALL:
+        case ANY:
+        case HASH:
+        case EXIST:
+        case NOTEXIST:
+<span class="fc" id="L301">          attackSteps.add(_parseAttackStep());</span>
+<span class="fc" id="L302">          break;</span>
+        case RCURLY:
+<span class="fc" id="L304">          _next();</span>
+<span class="fc" id="L305">          break loop;</span>
+        default:
+<span class="fc" id="L307">          throw exception(attackStepFirst, TokenType.LET, TokenType.RCURLY);</span>
+      }
+    }
+<span class="fc" id="L310">    return new AST.Asset(firstToken, isAbstract, name, parent, meta, attackSteps, variables);</span>
+  }
+
+  // &lt;asset&gt;*
+  private List&lt;AST.Asset&gt; _parseAssetList() throws CompilerException {
+<span class="fc" id="L315">    var assets = new ArrayList&lt;AST.Asset&gt;();</span>
+    while (true) {
+<span class="fc bfc" id="L317" title="All 2 branches covered.">      switch (tok.type) {</span>
+        case ABSTRACT:
+        case ASSET:
+<span class="fc" id="L320">          assets.add(_parseAsset());</span>
+<span class="fc" id="L321">          break;</span>
+        default:
+<span class="fc" id="L323">          return assets;</span>
+      }
+    }
+  }
+
+  // &lt;attackstep&gt; ::= &lt;astype&gt; ID &lt;tag&gt;* &lt;cia&gt;? &lt;ttc&gt;? &lt;meta1&gt;* &lt;existence&gt;? &lt;reaches&gt;?
+  private AST.AttackStep _parseAttackStep() throws CompilerException {
+<span class="fc" id="L330">    var firstToken = tok;</span>
+
+<span class="fc" id="L332">    var asType = _parseAttackStepType();</span>
+<span class="fc" id="L333">    var name = _parseID();</span>
+<span class="fc" id="L334">    List&lt;AST.ID&gt; tags = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L335" title="All 2 branches covered.">    while (tok.type == TokenType.AT) {</span>
+<span class="fc" id="L336">      tags.add(_parseTag());</span>
+    }
+<span class="fc" id="L338">    Optional&lt;List&lt;AST.CIA&gt;&gt; cia = Optional.empty();</span>
+<span class="fc bfc" id="L339" title="All 2 branches covered.">    if (tok.type == TokenType.LCURLY) {</span>
+<span class="fc" id="L340">      cia = Optional.of(_parseCIA());</span>
+    }
+<span class="fc" id="L342">    Optional&lt;AST.TTCExpr&gt; ttc = Optional.empty();</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">    if (tok.type == TokenType.LBRACKET) {</span>
+<span class="fc" id="L344">      ttc = _parseTTC();</span>
+    }
+<span class="fc" id="L346">    var meta = _parseMeta1List();</span>
+<span class="fc" id="L347">    Optional&lt;AST.Requires&gt; requires = Optional.empty();</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">    if (tok.type == TokenType.REQUIRE) {</span>
+<span class="fc" id="L349">      requires = Optional.of(_parseExistence());</span>
+    }
+<span class="fc" id="L351">    Optional&lt;AST.Reaches&gt; reaches = Optional.empty();</span>
+<span class="fc bfc" id="L352" title="All 4 branches covered.">    if (tok.type == TokenType.INHERIT || tok.type == TokenType.OVERRIDE) {</span>
+<span class="fc" id="L353">      reaches = Optional.of(_parseReaches());</span>
+    }
+<span class="fc" id="L355">    return new AST.AttackStep(firstToken, asType, name, tags, cia, ttc, meta, requires, reaches);</span>
+  }
+
+  // &lt;astype&gt; ::= ALL | ANY | HASH | EXIST | NOTEXIST
+  private AST.AttackStepType _parseAttackStepType() throws CompilerException {
+<span class="pc bpc" id="L360" title="1 of 6 branches missed.">    switch (tok.type) {</span>
+      case ALL:
+<span class="fc" id="L362">        _next();</span>
+<span class="fc" id="L363">        return AST.AttackStepType.ALL;</span>
+      case ANY:
+<span class="fc" id="L365">        _next();</span>
+<span class="fc" id="L366">        return AST.AttackStepType.ANY;</span>
+      case HASH:
+<span class="fc" id="L368">        _next();</span>
+<span class="fc" id="L369">        return AST.AttackStepType.DEFENSE;</span>
+      case EXIST:
+<span class="fc" id="L371">        _next();</span>
+<span class="fc" id="L372">        return AST.AttackStepType.EXIST;</span>
+      case NOTEXIST:
+<span class="fc" id="L374">        _next();</span>
+<span class="fc" id="L375">        return AST.AttackStepType.NOTEXIST;</span>
+      default:
+<span class="nc" id="L377">        throw exception(attackStepFirst);</span>
+    }
+  }
+
+  // &lt;tag&gt; ::= AT ID
+  private AST.ID _parseTag() throws CompilerException {
+<span class="fc" id="L383">    _expect(TokenType.AT);</span>
+<span class="fc" id="L384">    return _parseID();</span>
+  }
+
+  // &lt;cia&gt; ::= LCURLY &lt;cia-list&gt;? RCURLY
+  private List&lt;AST.CIA&gt; _parseCIA() throws CompilerException {
+<span class="fc" id="L389">    _expect(TokenType.LCURLY);</span>
+<span class="fc" id="L390">    List&lt;AST.CIA&gt; cia = new ArrayList&lt;AST.CIA&gt;();</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">    if (tok.type != TokenType.RCURLY) {</span>
+<span class="fc" id="L392">      _parseCIAList(cia);</span>
+    }
+<span class="fc" id="L394">    _expect(TokenType.RCURLY);</span>
+<span class="fc" id="L395">    return cia;</span>
+  }
+
+  // &lt;cia-list&gt; ::= &lt;cia-class&gt; (COMMA &lt;cia-class&gt;)*
+  private void _parseCIAList(List&lt;AST.CIA&gt; cia) throws CompilerException {
+<span class="fc" id="L400">    cia.add(_parseCIAClass());</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">    while (tok.type == TokenType.COMMA) {</span>
+<span class="fc" id="L402">      _next();</span>
+<span class="fc" id="L403">      cia.add(_parseCIAClass());</span>
+    }
+<span class="fc" id="L405">  }</span>
+
+  // &lt;cia-class&gt; ::= C | I | A
+  private AST.CIA _parseCIAClass() throws CompilerException {
+<span class="fc bfc" id="L409" title="All 4 branches covered.">    switch (tok.type) {</span>
+      case C:
+<span class="fc" id="L411">        _next();</span>
+<span class="fc" id="L412">        return AST.CIA.C;</span>
+      case I:
+<span class="fc" id="L414">        _next();</span>
+<span class="fc" id="L415">        return AST.CIA.I;</span>
+      case A:
+<span class="fc" id="L417">        _next();</span>
+<span class="fc" id="L418">        return AST.CIA.A;</span>
+      default:
+<span class="fc" id="L420">        throw exception(TokenType.C, TokenType.I, TokenType.A, TokenType.RCURLY);</span>
+    }
+  }
+
+  // &lt;ttc&gt; ::= LBRACKET &lt;ttc-expr&gt;? RBRACKET
+  private Optional&lt;AST.TTCExpr&gt; _parseTTC() throws CompilerException {
+<span class="fc" id="L426">    _expect(TokenType.LBRACKET);</span>
+<span class="fc" id="L427">    Optional&lt;AST.TTCExpr&gt; expr = Optional.empty();</span>
+<span class="fc bfc" id="L428" title="All 2 branches covered.">    if (tok.type != TokenType.RBRACKET) {</span>
+<span class="fc" id="L429">      expr = Optional.of(_parseTTCExpr());</span>
+    } else {
+      // empty brackets [] = 0
+<span class="fc" id="L432">      expr = Optional.of(new AST.TTCFuncExpr(tok, new AST.ID(tok, &quot;Zero&quot;), new ArrayList&lt;&gt;()));</span>
+    }
+<span class="fc" id="L434">    _expect(TokenType.RBRACKET);</span>
+<span class="fc" id="L435">    return expr;</span>
+  }
+
+  // &lt;ttc-expr&gt; ::= &lt;ttc-term&gt; ((PLUS | MINUS) &lt;ttc-term&gt;)*
+  private AST.TTCExpr _parseTTCExpr() throws CompilerException {
+<span class="fc" id="L440">    var firstToken = tok;</span>
+
+<span class="fc" id="L442">    var lhs = _parseTTCTerm();</span>
+<span class="fc bfc" id="L443" title="All 4 branches covered.">    while (tok.type == TokenType.PLUS || tok.type == TokenType.MINUS) {</span>
+<span class="fc" id="L444">      var addType = tok.type;</span>
+<span class="fc" id="L445">      _next();</span>
+<span class="fc" id="L446">      var rhs = _parseTTCTerm();</span>
+<span class="fc bfc" id="L447" title="All 2 branches covered.">      if (addType == TokenType.PLUS) {</span>
+<span class="fc" id="L448">        lhs = new AST.TTCAddExpr(firstToken, lhs, rhs);</span>
+      } else {
+<span class="fc" id="L450">        lhs = new AST.TTCSubExpr(firstToken, lhs, rhs);</span>
+      }
+<span class="fc" id="L452">    }</span>
+<span class="fc" id="L453">    return lhs;</span>
+  }
+
+  // &lt;ttc-term&gt; ::= &lt;ttc-fact&gt; ((STAR | DIVIDE) &lt;ttc-fact&gt;)*
+  private AST.TTCExpr _parseTTCTerm() throws CompilerException {
+<span class="fc" id="L458">    var firstToken = tok;</span>
+
+<span class="fc" id="L460">    var lhs = _parseTTCFact();</span>
+<span class="fc bfc" id="L461" title="All 4 branches covered.">    while (tok.type == TokenType.STAR || tok.type == TokenType.DIVIDE) {</span>
+<span class="fc" id="L462">      var mulType = tok.type;</span>
+<span class="fc" id="L463">      _next();</span>
+<span class="fc" id="L464">      var rhs = _parseTTCFact();</span>
+<span class="fc bfc" id="L465" title="All 2 branches covered.">      if (mulType == TokenType.STAR) {</span>
+<span class="fc" id="L466">        lhs = new AST.TTCMulExpr(firstToken, lhs, rhs);</span>
+      } else {
+<span class="fc" id="L468">        lhs = new AST.TTCDivExpr(firstToken, lhs, rhs);</span>
+      }
+<span class="fc" id="L470">    }</span>
+<span class="fc" id="L471">    return lhs;</span>
+  }
+
+  // &lt;ttc-fact&gt; ::= &lt;ttc-prim&gt; (POWER &lt;ttc-fact&gt;)?
+  private AST.TTCExpr _parseTTCFact() throws CompilerException {
+<span class="fc" id="L476">    var firstToken = tok;</span>
+
+<span class="fc" id="L478">    var e = _parseTTCPrim();</span>
+<span class="fc bfc" id="L479" title="All 2 branches covered.">    if (tok.type == TokenType.POWER) {</span>
+<span class="fc" id="L480">      _next();</span>
+<span class="fc" id="L481">      e = new AST.TTCPowExpr(firstToken, e, _parseTTCFact());</span>
+    }
+<span class="fc" id="L483">    return e;</span>
+  }
+
+  // &lt;ttc-prim&gt; ::= ID (LPAREN (&lt;number&gt; (COMMA &lt;number&gt;)*)? RPAREN)?
+  //              | LPAREN &lt;ttc-expr&gt; RPAREN | &lt;number&gt;
+  private AST.TTCExpr _parseTTCPrim() throws CompilerException {
+<span class="fc" id="L489">    var firstToken = tok;</span>
+<span class="fc bfc" id="L490" title="All 2 branches covered.">    if (tok.type == TokenType.ID) {</span>
+<span class="fc" id="L491">      var function = _parseID();</span>
+<span class="fc" id="L492">      var params = new ArrayList&lt;Double&gt;();</span>
+<span class="fc bfc" id="L493" title="All 2 branches covered.">      if (tok.type == TokenType.LPAREN) {</span>
+<span class="fc" id="L494">        _next();</span>
+<span class="fc bfc" id="L495" title="All 4 branches covered.">        if (tok.type == TokenType.INT || tok.type == TokenType.FLOAT) {</span>
+<span class="fc" id="L496">          params.add(_parseNumber());</span>
+<span class="fc bfc" id="L497" title="All 2 branches covered.">          while (tok.type == TokenType.COMMA) {</span>
+<span class="fc" id="L498">            _next();</span>
+<span class="fc" id="L499">            params.add(_parseNumber());</span>
+          }
+        }
+<span class="fc" id="L502">        _expect(TokenType.RPAREN);</span>
+      }
+<span class="fc" id="L504">      return new AST.TTCFuncExpr(firstToken, function, params);</span>
+<span class="fc bfc" id="L505" title="All 2 branches covered.">    } else if (tok.type == TokenType.LPAREN) {</span>
+<span class="fc" id="L506">      _next();</span>
+<span class="fc" id="L507">      var e = _parseTTCExpr();</span>
+<span class="fc" id="L508">      _expect(TokenType.RPAREN);</span>
+<span class="fc" id="L509">      return e;</span>
+<span class="pc bpc" id="L510" title="3 of 4 branches missed.">    } else if (tok.type == TokenType.INT || tok.type == TokenType.FLOAT) {</span>
+<span class="fc" id="L511">      double num = _parseNumber();</span>
+<span class="fc" id="L512">      return new AST.TTCNumExpr(firstToken, num);</span>
+    } else {
+<span class="nc" id="L514">      throw exception(TokenType.ID, TokenType.LPAREN, TokenType.INT, TokenType.FLOAT);</span>
+    }
+  }
+
+  // &lt;existence&gt; ::= REQUIRE &lt;expr&gt; (COMMA &lt;expr&gt;)*
+  private AST.Requires _parseExistence() throws CompilerException {
+<span class="fc" id="L520">    var firstToken = tok;</span>
+
+<span class="fc" id="L522">    _expect(TokenType.REQUIRE);</span>
+<span class="fc" id="L523">    var requires = new ArrayList&lt;AST.Expr&gt;();</span>
+<span class="fc" id="L524">    requires.add(_parseExpr());</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">    while (tok.type == TokenType.COMMA) {</span>
+<span class="fc" id="L526">      _next();</span>
+<span class="fc" id="L527">      requires.add(_parseExpr());</span>
+    }
+<span class="fc" id="L529">    return new AST.Requires(firstToken, requires);</span>
+  }
+
+  // &lt;reaches&gt; ::= (INHERIT | OVERRIDE) &lt;expr&gt; (COMMA &lt;expr&gt;)*
+  private AST.Reaches _parseReaches() throws CompilerException {
+<span class="fc" id="L534">    var firstToken = tok;</span>
+
+<span class="fc" id="L536">    var inherits = false;</span>
+<span class="fc bfc" id="L537" title="All 2 branches covered.">    if (tok.type == TokenType.INHERIT) {</span>
+<span class="fc" id="L538">      inherits = true;</span>
+<span class="pc bpc" id="L539" title="1 of 2 branches missed.">    } else if (tok.type == TokenType.OVERRIDE) {</span>
+<span class="fc" id="L540">      inherits = false;</span>
+    } else {
+<span class="nc" id="L542">      throw exception(TokenType.INHERIT, TokenType.OVERRIDE);</span>
+    }
+<span class="fc" id="L544">    _next();</span>
+<span class="fc" id="L545">    var reaches = new ArrayList&lt;AST.Expr&gt;();</span>
+<span class="fc" id="L546">    reaches.add(_parseExpr());</span>
+<span class="fc bfc" id="L547" title="All 2 branches covered.">    while (tok.type == TokenType.COMMA) {</span>
+<span class="fc" id="L548">      _next();</span>
+<span class="fc" id="L549">      reaches.add(_parseExpr());</span>
+    }
+<span class="fc" id="L551">    return new AST.Reaches(firstToken, inherits, reaches);</span>
+  }
+
+  // &lt;variable&gt; ::= LET ID ASSIGN &lt;expr&gt;
+  private AST.Variable _parseVariable() throws CompilerException {
+<span class="fc" id="L556">    var firstToken = tok;</span>
+
+<span class="fc" id="L558">    _expect(TokenType.LET);</span>
+<span class="fc" id="L559">    var id = _parseID();</span>
+<span class="fc" id="L560">    _expect(TokenType.ASSIGN);</span>
+<span class="fc" id="L561">    var e = _parseExpr();</span>
+<span class="fc" id="L562">    return new AST.Variable(firstToken, id, e);</span>
+  }
+
+  // &lt;expr&gt; ::= &lt;steps&gt; ((UNION | INTERSECT | MINUS) &lt;steps&gt;)*
+  private AST.Expr _parseExpr() throws CompilerException {
+<span class="fc" id="L567">    var firstToken = tok;</span>
+
+<span class="fc" id="L569">    var lhs = _parseSteps();</span>
+<span class="fc bfc" id="L570" title="All 6 branches covered.">    while (tok.type == TokenType.UNION</span>
+        || tok.type == TokenType.INTERSECT
+        || tok.type == TokenType.MINUS) {
+<span class="fc" id="L573">      var setType = tok.type;</span>
+<span class="fc" id="L574">      _next();</span>
+<span class="fc" id="L575">      var rhs = _parseSteps();</span>
+<span class="fc bfc" id="L576" title="All 2 branches covered.">      if (setType == TokenType.UNION) {</span>
+<span class="fc" id="L577">        lhs = new AST.UnionExpr(firstToken, lhs, rhs);</span>
+<span class="fc bfc" id="L578" title="All 2 branches covered.">      } else if (setType == TokenType.INTERSECT) {</span>
+<span class="fc" id="L579">        lhs = new AST.IntersectionExpr(firstToken, lhs, rhs);</span>
+      } else {
+<span class="fc" id="L581">        lhs = new AST.DifferenceExpr(firstToken, lhs, rhs);</span>
+      }
+<span class="fc" id="L583">    }</span>
+<span class="fc" id="L584">    return lhs;</span>
+  }
+
+  // &lt;steps&gt; ::= &lt;step&gt; (DOT &lt;step&gt;)*
+  private AST.Expr _parseSteps() throws CompilerException {
+<span class="fc" id="L589">    var firstToken = tok;</span>
+
+<span class="fc" id="L591">    var lhs = _parseStep();</span>
+<span class="fc bfc" id="L592" title="All 2 branches covered.">    while (tok.type == TokenType.DOT) {</span>
+<span class="fc" id="L593">      _next();</span>
+<span class="fc" id="L594">      var rhs = _parseStep();</span>
+<span class="fc" id="L595">      lhs = new AST.StepExpr(firstToken, lhs, rhs);</span>
+<span class="fc" id="L596">    }</span>
+<span class="fc" id="L597">    return lhs;</span>
+  }
+
+  // &lt;step&gt; ::= (LPAREN &lt;expr&gt; RPAREN | ID (LPAREN RPAREN)?) (STAR | &lt;type&gt;)*
+  private AST.Expr _parseStep() throws CompilerException {
+<span class="fc" id="L602">    var firstToken = tok;</span>
+
+<span class="fc" id="L604">    AST.Expr e = null;</span>
+<span class="fc bfc" id="L605" title="All 2 branches covered.">    if (tok.type == TokenType.LPAREN) {</span>
+<span class="fc" id="L606">      _next();</span>
+<span class="fc" id="L607">      e = _parseExpr();</span>
+<span class="fc" id="L608">      _expect(TokenType.RPAREN);</span>
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">    } else if (tok.type == TokenType.ID) {</span>
+<span class="fc" id="L610">      var id = _parseID();</span>
+<span class="fc" id="L611">      e = new AST.IDExpr(firstToken, id);</span>
+<span class="fc bfc" id="L612" title="All 2 branches covered.">      if (tok.type == TokenType.LPAREN) {</span>
+<span class="fc" id="L613">        _next();</span>
+<span class="fc" id="L614">        _expect(TokenType.RPAREN);</span>
+<span class="fc" id="L615">        e = new AST.CallExpr(firstToken, id);</span>
+      }
+<span class="fc" id="L617">    } else {</span>
+<span class="nc" id="L618">      throw exception(TokenType.LPAREN, TokenType.ID);</span>
+    }
+<span class="fc bfc" id="L620" title="All 4 branches covered.">    while (tok.type == TokenType.STAR || tok.type == TokenType.LBRACKET) {</span>
+<span class="fc bfc" id="L621" title="All 2 branches covered.">      if (tok.type == TokenType.STAR) {</span>
+<span class="fc" id="L622">        _next();</span>
+<span class="fc" id="L623">        e = new AST.TransitiveExpr(firstToken, e);</span>
+<span class="pc bpc" id="L624" title="1 of 2 branches missed.">      } else if (tok.type == TokenType.LBRACKET) {</span>
+<span class="fc" id="L625">        e = new AST.SubTypeExpr(firstToken, e, _parseType());</span>
+      }
+    }
+<span class="fc" id="L628">    return e;</span>
+  }
+
+  // &lt;associations&gt; ::= ASSOCIATIONS LCURLY &lt;associations1&gt;? RCURLY
+  private List&lt;AST.Association&gt; _parseAssociations() throws CompilerException {
+<span class="fc" id="L633">    _expect(TokenType.ASSOCIATIONS);</span>
+<span class="fc" id="L634">    _expect(TokenType.LCURLY);</span>
+<span class="fc" id="L635">    List&lt;AST.Association&gt; assocs = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L636" title="All 2 branches covered.">    if (tok.type == TokenType.ID) {</span>
+<span class="fc" id="L637">      assocs = _parseAssociations1();</span>
+    }
+<span class="fc" id="L639">    _expect(TokenType.RCURLY);</span>
+<span class="fc" id="L640">    return assocs;</span>
+  }
+
+  // &lt;associations1&gt; ::= ID &lt;association&gt; (ID (&lt;meta2&gt; | &lt;association&gt;))*
+  private List&lt;AST.Association&gt; _parseAssociations1() throws CompilerException {
+<span class="fc" id="L645">    var assocs = new ArrayList&lt;AST.Association&gt;();</span>
+<span class="fc" id="L646">    var leftAsset = _parseID();</span>
+<span class="fc" id="L647">    var assoc = _parseAssociation(leftAsset);</span>
+<span class="fc bfc" id="L648" title="All 2 branches covered.">    while (tok.type == TokenType.ID) {</span>
+<span class="fc" id="L649">      var id = _parseID();</span>
+<span class="fc bfc" id="L650" title="All 2 branches covered.">      if (tok.type == TokenType.INFO) {</span>
+<span class="fc" id="L651">        assoc.meta.add(_parseMeta2(id));</span>
+<span class="pc bpc" id="L652" title="1 of 2 branches missed.">      } else if (tok.type == TokenType.LBRACKET) {</span>
+<span class="fc" id="L653">        assocs.add(assoc);</span>
+<span class="fc" id="L654">        assoc = _parseAssociation(id);</span>
+      } else {
+<span class="nc" id="L656">        throw exception(TokenType.INFO, TokenType.LBRACKET);</span>
+      }
+<span class="fc" id="L658">    }</span>
+<span class="fc" id="L659">    assocs.add(assoc);</span>
+<span class="fc" id="L660">    return assocs;</span>
+  }
+
+  // &lt;association&gt; ::= &lt;type&gt; &lt;mult&gt; LARROW ID RARROW &lt;mult&gt; &lt;type&gt; ID
+  private AST.Association _parseAssociation(AST.ID leftAsset) throws CompilerException {
+<span class="fc" id="L665">    var leftField = _parseType();</span>
+<span class="fc" id="L666">    var leftMult = _parseMultiplicity();</span>
+<span class="fc" id="L667">    _expect(TokenType.LARROW);</span>
+<span class="fc" id="L668">    var linkName = _parseID();</span>
+<span class="fc" id="L669">    _expect(TokenType.RARROW);</span>
+<span class="fc" id="L670">    var rightMult = _parseMultiplicity();</span>
+<span class="fc" id="L671">    var rightField = _parseType();</span>
+<span class="fc" id="L672">    var rightAsset = _parseID();</span>
+<span class="fc" id="L673">    return new AST.Association(</span>
+        leftAsset,
+        leftAsset,
+        leftField,
+        leftMult,
+        linkName,
+        rightMult,
+        rightField,
+        rightAsset,
+        new ArrayList&lt;&gt;());
+  }
+
+  // &lt;mult&gt; ::= &lt;mult-unit&gt; (RANGE &lt;mult-unit&gt;)?
+  private AST.Multiplicity _parseMultiplicity() throws CompilerException {
+<span class="fc" id="L687">    var firstTok = tok;</span>
+
+<span class="fc" id="L689">    var min = _parseMultiplicityUnit();</span>
+<span class="fc bfc" id="L690" title="All 2 branches covered.">    if (tok.type == TokenType.RANGE) {</span>
+<span class="fc" id="L691">      _next();</span>
+<span class="fc" id="L692">      var max = _parseMultiplicityUnit();</span>
+<span class="fc bfc" id="L693" title="All 4 branches covered.">      if (min == 0 &amp;&amp; max == 1) {</span>
+<span class="fc" id="L694">        return AST.Multiplicity.ZERO_OR_ONE;</span>
+<span class="pc bpc" id="L695" title="1 of 4 branches missed.">      } else if (min == 0 &amp;&amp; max == 2) {</span>
+<span class="fc" id="L696">        return AST.Multiplicity.ZERO_OR_MORE;</span>
+<span class="pc bpc" id="L697" title="1 of 4 branches missed.">      } else if (min == 1 &amp;&amp; max == 1) {</span>
+<span class="fc" id="L698">        return AST.Multiplicity.ONE;</span>
+<span class="pc bpc" id="L699" title="1 of 4 branches missed.">      } else if (min == 1 &amp;&amp; max == 2) {</span>
+<span class="fc" id="L700">        return AST.Multiplicity.ONE_OR_MORE;</span>
+      } else {
+<span class="fc" id="L702">        throw exception(</span>
+            firstTok,
+<span class="fc" id="L704">            String.format(&quot;Invalid multiplicity '%c..%c'&quot;, intToMult(min), intToMult(max)));</span>
+      }
+    } else {
+<span class="fc bfc" id="L707" title="All 2 branches covered.">      if (min == 0) {</span>
+<span class="fc" id="L708">        throw exception(firstTok, &quot;Invalid multiplicity '0'&quot;);</span>
+<span class="fc bfc" id="L709" title="All 2 branches covered.">      } else if (min == 1) {</span>
+<span class="fc" id="L710">        return AST.Multiplicity.ONE;</span>
+      } else {
+<span class="fc" id="L712">        return AST.Multiplicity.ZERO_OR_MORE;</span>
+      }
+    }
+  }
+
+  private static char intToMult(int n) {
+<span class="pc bpc" id="L718" title="1 of 3 branches missed.">    switch (n) {</span>
+      case 0:
+<span class="fc" id="L720">        return '0';</span>
+      case 1:
+<span class="fc" id="L722">        return '1';</span>
+      default:
+<span class="nc" id="L724">        return '*';</span>
+    }
+  }
+
+  // &lt;mult-unit&gt; ::= INT | STAR
+  // 0 | 1 | *
+  private int _parseMultiplicityUnit() throws CompilerException {
+<span class="fc bfc" id="L731" title="All 2 branches covered.">    if (tok.type == TokenType.INT) {</span>
+<span class="fc" id="L732">      var n = tok.intValue;</span>
+<span class="fc bfc" id="L733" title="All 4 branches covered.">      if (n == 0 || n == 1) {</span>
+<span class="fc" id="L734">        _next();</span>
+<span class="fc" id="L735">        return n;</span>
+      }
+<span class="pc bpc" id="L737" title="1 of 2 branches missed.">    } else if (tok.type == TokenType.STAR) {</span>
+<span class="fc" id="L738">      _next();</span>
+<span class="fc" id="L739">      return 2;</span>
+    }
+<span class="fc" id="L741">    throw expectedException(&quot;'0', '1', or '*'&quot;);</span>
+  }
+
+  // &lt;type&gt; ::= LBRACKET ID RBRACKET
+  private AST.ID _parseType() throws CompilerException {
+<span class="fc" id="L746">    _expect(TokenType.LBRACKET);</span>
+<span class="fc" id="L747">    var id = _parseID();</span>
+<span class="fc" id="L748">    _expect(TokenType.RBRACKET);</span>
+<span class="fc" id="L749">    return id;</span>
+  }
+
+  /*
+   * CompilerException helper functions
+   */
+
+  private CompilerException expectedException(String expected) {
+<span class="fc" id="L757">    return exception(String.format(&quot;expected %s, found %s&quot;, expected, tok.type.toString()));</span>
+  }
+
+  private CompilerException exception(String msg) {
+<span class="fc" id="L761">    return exception(tok, msg);</span>
+  }
+
+  private CompilerException exception(Position pos, String msg) {
+<span class="fc" id="L765">    LOGGER.error(pos, msg);</span>
+<span class="fc" id="L766">    return new CompilerException(&quot;There were syntax errors&quot;);</span>
+  }
+
+  private CompilerException exception(TokenType... types) {
+<span class="fc" id="L770">    return exception(new TokenType[0], types);</span>
+  }
+
+  private CompilerException exception(TokenType[] firstTypes, TokenType... followingTypes) {
+<span class="pc bpc" id="L774" title="1 of 4 branches missed.">    if (firstTypes.length == 0 &amp;&amp; followingTypes.length == 0) {</span>
+<span class="nc" id="L775">      return expectedException(&quot;(null)&quot;);</span>
+    } else {
+<span class="fc" id="L777">      var sb = new StringBuilder();</span>
+<span class="fc" id="L778">      var totalLength = firstTypes.length + followingTypes.length;</span>
+<span class="fc bfc" id="L779" title="All 2 branches covered.">      for (int i = 0; i &lt; totalLength; ++i) {</span>
+<span class="fc" id="L780">        TokenType type = null;</span>
+<span class="fc bfc" id="L781" title="All 2 branches covered.">        if (i &lt; firstTypes.length) {</span>
+<span class="fc" id="L782">          type = firstTypes[i];</span>
+        } else {
+<span class="fc" id="L784">          type = followingTypes[i - firstTypes.length];</span>
+        }
+<span class="fc bfc" id="L786" title="All 2 branches covered.">        if (i == 0) {</span>
+<span class="fc" id="L787">          sb.append(type.toString());</span>
+<span class="fc bfc" id="L788" title="All 2 branches covered.">        } else if (i == totalLength - 1) {</span>
+<span class="pc bpc" id="L789" title="1 of 2 branches missed.">          if (totalLength == 2) {</span>
+<span class="nc" id="L790">            sb.append(String.format(&quot; or %s&quot;, type.toString()));</span>
+          } else {
+<span class="fc" id="L792">            sb.append(String.format(&quot;, or %s&quot;, type.toString()));</span>
+          }
+        } else {
+<span class="fc" id="L795">          sb.append(String.format(&quot;, %s&quot;, type.toString()));</span>
+        }
+      }
+<span class="fc" id="L798">      return expectedException(sb.toString());</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

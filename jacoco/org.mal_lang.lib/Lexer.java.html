@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Lexer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">MAL lib</a> &gt; <a href="index.source.html" class="el_package">org.mal_lang.lib</a> &gt; <span class="el_source">Lexer.java</span></div><h1>Lexer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2019-2021 Foreseeti AB &lt;https://foreseeti.com&gt;
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.mal_lang.lib;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+public class Lexer {
+  private MalLogger LOGGER;
+  private String filename;
+  private byte[] input;
+  private int index;
+  private int line;
+  private int col;
+  private int startLine;
+  private int startCol;
+  private List&lt;Byte&gt; lexeme;
+<span class="fc" id="L39">  private List&lt;Token&gt; comments = new ArrayList&lt;&gt;();</span>
+  private boolean eof;
+
+  private static Map&lt;String, TokenType&gt; keywords;
+
+  static {
+<span class="fc" id="L45">    keywords = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L46">    keywords.put(&quot;include&quot;, TokenType.INCLUDE);</span>
+<span class="fc" id="L47">    keywords.put(&quot;info&quot;, TokenType.INFO);</span>
+<span class="fc" id="L48">    keywords.put(&quot;category&quot;, TokenType.CATEGORY);</span>
+<span class="fc" id="L49">    keywords.put(&quot;abstract&quot;, TokenType.ABSTRACT);</span>
+<span class="fc" id="L50">    keywords.put(&quot;asset&quot;, TokenType.ASSET);</span>
+<span class="fc" id="L51">    keywords.put(&quot;extends&quot;, TokenType.EXTENDS);</span>
+<span class="fc" id="L52">    keywords.put(&quot;associations&quot;, TokenType.ASSOCIATIONS);</span>
+<span class="fc" id="L53">    keywords.put(&quot;let&quot;, TokenType.LET);</span>
+<span class="fc" id="L54">    keywords.put(&quot;E&quot;, TokenType.EXIST);</span>
+<span class="fc" id="L55">    keywords.put(&quot;C&quot;, TokenType.C);</span>
+<span class="fc" id="L56">    keywords.put(&quot;I&quot;, TokenType.I);</span>
+<span class="fc" id="L57">    keywords.put(&quot;A&quot;, TokenType.A);</span>
+  }
+
+  private static Map&lt;String, Byte&gt; escapeSequences;
+
+  static {
+<span class="fc" id="L63">    escapeSequences = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L64">    escapeSequences.put(&quot;\\b&quot;, (byte) '\b');</span>
+<span class="fc" id="L65">    escapeSequences.put(&quot;\\n&quot;, (byte) '\n');</span>
+<span class="fc" id="L66">    escapeSequences.put(&quot;\\t&quot;, (byte) '\t');</span>
+<span class="fc" id="L67">    escapeSequences.put(&quot;\\r&quot;, (byte) '\r');</span>
+<span class="fc" id="L68">    escapeSequences.put(&quot;\\f&quot;, (byte) '\f');</span>
+<span class="fc" id="L69">    escapeSequences.put(&quot;\\\&quot;&quot;, (byte) '&quot;');</span>
+<span class="fc" id="L70">    escapeSequences.put(&quot;\\\\&quot;, (byte) '\\');</span>
+<span class="fc" id="L71">  }</span>
+
+  public Lexer(File file) throws IOException {
+<span class="fc" id="L74">    this(file, file.getName(), false, false);</span>
+<span class="fc" id="L75">  }</span>
+
+  public Lexer(File file, boolean verbose, boolean debug) throws IOException {
+<span class="nc" id="L78">    this(file, file.getName(), verbose, debug);</span>
+<span class="nc" id="L79">  }</span>
+
+  public Lexer(File file, String relativeName) throws IOException {
+<span class="fc" id="L82">    this(file, relativeName, false, false);</span>
+<span class="fc" id="L83">  }</span>
+
+<span class="fc" id="L85">  public Lexer(File file, String relativeName, boolean verbose, boolean debug) throws IOException {</span>
+<span class="fc" id="L86">    Locale.setDefault(Locale.ROOT);</span>
+<span class="fc" id="L87">    LOGGER = new MalLogger(&quot;LEXER&quot;, verbose, debug);</span>
+    try {
+<span class="fc" id="L89">      LOGGER.debug(String.format(&quot;Creating lexer with file '%s'&quot;, relativeName));</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">      if (!file.exists()) {</span>
+<span class="fc" id="L91">        throw new IOException(String.format(&quot;%s: No such file or directory&quot;, relativeName));</span>
+      }
+<span class="fc" id="L93">      this.filename = relativeName;</span>
+<span class="fc" id="L94">      this.input = Files.readAllBytes(file.toPath());</span>
+<span class="fc" id="L95">      this.index = 0;</span>
+<span class="fc" id="L96">      this.line = 1;</span>
+<span class="fc" id="L97">      this.col = 1;</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">      this.eof = input.length == 0;</span>
+<span class="fc" id="L99">    } catch (IOException e) {</span>
+<span class="fc" id="L100">      LOGGER.print();</span>
+<span class="fc" id="L101">      throw e;</span>
+<span class="fc" id="L102">    }</span>
+<span class="fc" id="L103">  }</span>
+
+  public static boolean syntacticallyEqual(Lexer l1, Lexer l2) {
+    try {
+<span class="nc" id="L107">      var tok1 = l1.next();</span>
+<span class="nc" id="L108">      var tok2 = l2.next();</span>
+<span class="nc bnc" id="L109" title="All 4 branches missed.">      while (tok1.type != TokenType.EOF &amp;&amp; tok2.type != TokenType.EOF) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (tok1.type != tok2.type</span>
+<span class="nc bnc" id="L111" title="All 6 branches missed.">            || !tok1.stringValue.equals(tok2.stringValue)</span>
+            || tok1.intValue != tok2.intValue
+            || tok1.doubleValue != tok2.doubleValue) {
+<span class="nc" id="L114">          return false;</span>
+        }
+<span class="nc" id="L116">        tok1 = l1.next();</span>
+<span class="nc" id="L117">        tok2 = l2.next();</span>
+      }
+<span class="nc bnc" id="L119" title="All 4 branches missed.">      return tok1.type == TokenType.EOF &amp;&amp; tok2.type == TokenType.EOF;</span>
+<span class="nc" id="L120">    } catch (CompilerException e) {</span>
+<span class="nc" id="L121">      return false;</span>
+    }
+  }
+
+  private String getLexemeString() {
+<span class="fc" id="L126">    byte[] byteArray = new byte[lexeme.size()];</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    for (int i = 0; i &lt; lexeme.size(); i++) {</span>
+<span class="fc" id="L128">      byteArray[i] = lexeme.get(i).byteValue();</span>
+    }
+<span class="fc" id="L130">    return new String(byteArray, StandardCharsets.UTF_8);</span>
+  }
+
+  public Token next() throws CompilerException {
+<span class="fc" id="L134">    startLine = line;</span>
+<span class="fc" id="L135">    startCol = col;</span>
+<span class="fc" id="L136">    lexeme = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (eof) {</span>
+<span class="fc" id="L138">      LOGGER.print();</span>
+<span class="fc" id="L139">      return createToken(TokenType.EOF);</span>
+    }
+<span class="fc" id="L141">    byte c = consume();</span>
+<span class="fc bfc" id="L142" title="All 25 branches covered.">    switch (c) {</span>
+      case ' ':
+      case '\t':
+      case '\r':
+      case '\n':
+<span class="fc" id="L147">        return next();</span>
+      case '#':
+<span class="fc" id="L149">        return createToken(TokenType.HASH);</span>
+      case ':':
+<span class="fc" id="L151">        return createToken(TokenType.COLON);</span>
+      case '{':
+<span class="fc" id="L153">        return createToken(TokenType.LCURLY);</span>
+      case '}':
+<span class="fc" id="L155">        return createToken(TokenType.RCURLY);</span>
+      case '+':
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (peek('&gt;')) {</span>
+<span class="fc" id="L158">          consume();</span>
+<span class="fc" id="L159">          return createToken(TokenType.INHERIT);</span>
+        } else {
+<span class="fc" id="L161">          return createToken(TokenType.PLUS);</span>
+        }
+      case '-':
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (peek('&gt;')) {</span>
+<span class="fc" id="L165">          consume();</span>
+<span class="fc" id="L166">          return createToken(TokenType.OVERRIDE);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        } else if (peek(&quot;-&gt;&quot;)) {</span>
+<span class="fc" id="L168">          consume(2);</span>
+<span class="fc" id="L169">          return createToken(TokenType.RARROW);</span>
+        } else {
+<span class="fc" id="L171">          return createToken(TokenType.MINUS);</span>
+        }
+      case '&amp;':
+<span class="fc" id="L174">        return createToken(TokenType.ALL);</span>
+      case '|':
+<span class="fc" id="L176">        return createToken(TokenType.ANY);</span>
+      case '!':
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">        if (peek('E')) {</span>
+<span class="fc" id="L179">          consume();</span>
+<span class="fc" id="L180">          return createToken(TokenType.NOTEXIST);</span>
+        } else {
+<span class="nc" id="L182">          throw exception(&quot;Expected 'E'&quot;);</span>
+        }
+      case '@':
+<span class="fc" id="L185">        return createToken(TokenType.AT);</span>
+      case '[':
+<span class="fc" id="L187">        return createToken(TokenType.LBRACKET);</span>
+      case ']':
+<span class="fc" id="L189">        return createToken(TokenType.RBRACKET);</span>
+      case '(':
+<span class="fc" id="L191">        return createToken(TokenType.LPAREN);</span>
+      case ')':
+<span class="fc" id="L193">        return createToken(TokenType.RPAREN);</span>
+      case ',':
+<span class="fc" id="L195">        return createToken(TokenType.COMMA);</span>
+      case '&lt;':
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (peek(&quot;--&quot;)) {</span>
+<span class="fc" id="L198">          consume(2);</span>
+<span class="fc" id="L199">          return createToken(TokenType.LARROW);</span>
+<span class="fc bfc" id="L200" title="All 2 branches covered.">        } else if (peek('-')) {</span>
+<span class="fc" id="L201">          consume();</span>
+<span class="fc" id="L202">          return createToken(TokenType.REQUIRE);</span>
+        } else {
+<span class="fc" id="L204">          throw exception(&quot;Expected '-' or '--'&quot;);</span>
+        }
+      case '=':
+<span class="fc" id="L207">        return createToken(TokenType.ASSIGN);</span>
+      case '\\':
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">        if (peek('/')) {</span>
+<span class="fc" id="L210">          consume();</span>
+<span class="fc" id="L211">          return createToken(TokenType.UNION);</span>
+        } else {
+<span class="nc" id="L213">          throw exception(&quot;Expected '/'&quot;);</span>
+        }
+      case '/':
+<span class="fc bfc" id="L216" title="All 2 branches covered.">        if (peek('\\')) {</span>
+<span class="fc" id="L217">          consume();</span>
+<span class="fc" id="L218">          return createToken(TokenType.INTERSECT);</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">        } else if (peek('/')) {</span>
+<span class="pc bpc" id="L220" title="2 of 6 branches missed.">          while (!eof &amp;&amp; !peek('\n') &amp;&amp; !peek('\r')) {</span>
+<span class="fc" id="L221">            consume();</span>
+          }
+<span class="fc" id="L223">          createComment(TokenType.SINGLECOMMENT);</span>
+<span class="fc" id="L224">          return next();</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">        } else if (peek('*')) {</span>
+<span class="fc" id="L226">          consume();</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">          while (!peek(&quot;*/&quot;)) {</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">            if (eof) {</span>
+<span class="fc" id="L229">              throw exception(</span>
+<span class="fc" id="L230">                  String.format(</span>
+                      &quot;Unterminated comment starting at %s&quot;,
+                      new Position(filename, startLine, startCol)));
+            }
+<span class="fc" id="L234">            consume();</span>
+          }
+<span class="fc" id="L236">          consume(2);</span>
+<span class="fc" id="L237">          createComment(TokenType.MULTICOMMENT);</span>
+<span class="fc" id="L238">          return next();</span>
+        } else {
+<span class="fc" id="L240">          return createToken(TokenType.DIVIDE);</span>
+        }
+      case '.':
+<span class="fc bfc" id="L243" title="All 2 branches covered.">        if (peek('.')) {</span>
+<span class="fc" id="L244">          consume();</span>
+<span class="fc" id="L245">          return createToken(TokenType.RANGE);</span>
+        } else {
+<span class="fc" id="L247">          return createToken(TokenType.DOT);</span>
+        }
+      case '*':
+<span class="fc" id="L250">        return createToken(TokenType.STAR);</span>
+      case '^':
+<span class="fc" id="L252">        return createToken(TokenType.POWER);</span>
+      case '&quot;':
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        while (!peek('&quot;')) {</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">          if (peek('\\')) {</span>
+<span class="fc" id="L256">            consume();</span>
+<span class="pc bpc" id="L257" title="2 of 4 branches missed.">            if (eof || peek('\n')) {</span>
+<span class="nc" id="L258">              throw exception(</span>
+<span class="nc" id="L259">                  String.format(</span>
+                      &quot;Unterminated string starting at %s&quot;,
+                      new Position(filename, startLine, startCol)));
+            }
+<span class="pc bpc" id="L263" title="1 of 4 branches missed.">            if (input[index] &lt; 32 || input[index] &gt; 126) {</span>
+<span class="fc" id="L264">              throw exception(String.format(&quot;Invalid escape byte 0x%02X&quot;, input[index]));</span>
+            }
+<span class="fc" id="L266">            consume();</span>
+<span class="fc" id="L267">            var lexemeString = getLexemeString();</span>
+<span class="fc" id="L268">            String escapeSequence = lexemeString.substring(lexemeString.length() - 2);</span>
+<span class="fc" id="L269">            lexeme = lexeme.subList(0, lexeme.size() - 2);</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">            if (!escapeSequences.containsKey(escapeSequence)) {</span>
+<span class="fc" id="L271">              throw exception(String.format(&quot;Invalid escape sequence '%s'&quot;, escapeSequence));</span>
+            }
+<span class="fc" id="L273">            lexeme.add(escapeSequences.get(escapeSequence));</span>
+<span class="pc bpc" id="L274" title="1 of 4 branches missed.">          } else if (eof || peek('\n')) {</span>
+<span class="fc" id="L275">            throw exception(</span>
+<span class="fc" id="L276">                String.format(</span>
+                    &quot;Unterminated string starting at %s&quot;,
+                    new Position(filename, startLine, startCol)));
+          } else {
+<span class="fc" id="L280">            consume();</span>
+          }
+        }
+<span class="fc" id="L283">        consume();</span>
+<span class="fc" id="L284">        return createToken(TokenType.STRING);</span>
+      default:
+<span class="fc bfc" id="L286" title="All 2 branches covered.">        if (isAlpha(c)) {</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">          while (isAlphaNumeric()) {</span>
+<span class="fc" id="L288">            consume();</span>
+          }
+<span class="fc" id="L290">          var lexemeString = getLexemeString();</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">          if (keywords.containsKey(lexemeString)) {</span>
+<span class="fc" id="L292">            return createToken(keywords.get(lexemeString));</span>
+          } else {
+<span class="fc" id="L294">            return createToken(TokenType.ID);</span>
+          }
+<span class="fc bfc" id="L296" title="All 2 branches covered.">        } else if (isDigit(c)) {</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">          while (isDigit()) {</span>
+<span class="fc" id="L298">            consume();</span>
+          }
+<span class="fc bfc" id="L300" title="All 4 branches covered.">          if (peek(&quot;..&quot;) || !peek('.')) {</span>
+<span class="fc" id="L301">            return createToken(TokenType.INT);</span>
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">          } else if (peek('.')) {</span>
+<span class="fc" id="L303">            consume();</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">            while (isDigit()) {</span>
+<span class="fc" id="L305">              consume();</span>
+            }
+<span class="fc" id="L307">            return createToken(TokenType.FLOAT);</span>
+          }
+        }
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">        if (c &lt; 0) {</span>
+<span class="fc" id="L311">          throw exception(String.format(&quot;Unexpected token 0x%02X&quot;, c));</span>
+        } else {
+<span class="nc" id="L313">          throw exception(String.format(&quot;Unexpected token '%c'&quot;, (char) c));</span>
+        }
+    }
+  }
+
+  private void consume(int n) {
+<span class="fc bfc" id="L319" title="All 2 branches covered.">    for (int i = 0; i &lt; n; i++) {</span>
+<span class="fc" id="L320">      consume();</span>
+    }
+<span class="fc" id="L322">  }</span>
+
+  private byte consume() {
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">    if (eof) {</span>
+<span class="nc" id="L326">      throw new RuntimeException(&quot;Consuming past end-of-file&quot;);</span>
+    }
+<span class="fc bfc" id="L328" title="All 2 branches covered.">    if (input[index] == (byte) '\n') {</span>
+<span class="fc" id="L329">      line++;</span>
+<span class="fc" id="L330">      col = 1;</span>
+    } else {
+<span class="fc" id="L332">      col++;</span>
+    }
+<span class="fc" id="L334">    var c = input[index++];</span>
+<span class="fc" id="L335">    lexeme.add(c);</span>
+<span class="fc bfc" id="L336" title="All 2 branches covered.">    if (index == input.length) {</span>
+<span class="fc" id="L337">      eof = true;</span>
+    }
+<span class="fc" id="L339">    return c;</span>
+  }
+
+  private boolean peek(String s) {
+<span class="fc" id="L343">    var bytes = s.getBytes();</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">    if (input.length - index &lt; bytes.length) {</span>
+<span class="fc" id="L345">      return false;</span>
+    }
+<span class="fc bfc" id="L347" title="All 2 branches covered.">    for (int i = 0; i &lt; bytes.length; i++) {</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">      if (bytes[i] != input[index + i]) {</span>
+<span class="fc" id="L349">        return false;</span>
+      }
+    }
+<span class="fc" id="L352">    return true;</span>
+  }
+
+  private boolean peek(char c) {
+<span class="fc" id="L356">    return peek((byte) c);</span>
+  }
+
+  private boolean peek(byte c) {
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">    if (eof) {</span>
+<span class="nc" id="L361">      return false;</span>
+    } else {
+<span class="fc bfc" id="L363" title="All 2 branches covered.">      return c == input[index];</span>
+    }
+  }
+
+  private void createComment(TokenType type) {
+<span class="fc" id="L368">    var lexemeString = getLexemeString();</span>
+<span class="fc" id="L369">    lexemeString = lexemeString.substring(2, lexemeString.length());</span>
+<span class="fc bfc" id="L370" title="All 2 branches covered.">    if (type == TokenType.MULTICOMMENT) {</span>
+<span class="fc" id="L371">      lexemeString = lexemeString.substring(0, lexemeString.length() - 2);</span>
+    }
+<span class="fc" id="L373">    comments.add(new Token(type, filename, startLine, startCol, lexemeString));</span>
+<span class="fc" id="L374">  }</span>
+
+  private Token createRawToken(TokenType type) {
+<span class="fc bfc" id="L377" title="All 5 branches covered.">    switch (type) {</span>
+      case INT:
+<span class="fc" id="L379">        return new Token(type, filename, startLine, startCol, Integer.parseInt(getLexemeString()));</span>
+      case FLOAT:
+<span class="fc" id="L381">        return new Token(</span>
+<span class="fc" id="L382">            type, filename, startLine, startCol, Double.parseDouble(getLexemeString()));</span>
+      case ID:
+<span class="fc" id="L384">        return new Token(type, filename, startLine, startCol, getLexemeString());</span>
+      case STRING:
+<span class="fc" id="L386">        var lexemeString = getLexemeString();</span>
+<span class="fc" id="L387">        return new Token(</span>
+            type,
+            filename,
+            startLine,
+            startCol,
+<span class="fc" id="L392">            lexemeString.substring(1, lexemeString.length() - 1));</span>
+      default:
+<span class="fc" id="L394">        return new Token(type, filename, startLine, startCol);</span>
+    }
+  }
+
+  @SuppressWarnings(&quot;fallthrough&quot;)
+  private void readTrailingComments() throws CompilerException {
+    // Trailing comments are all comments followed on the same line as the previous
+    // token, including comments that follow previous trailing comments by exactly 1
+    // line.
+<span class="fc" id="L403">    startLine = line;</span>
+<span class="fc" id="L404">    startCol = col;</span>
+<span class="fc" id="L405">    lexeme = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L406" title="All 4 branches covered.">    if (eof || peek('\n')) {</span>
+<span class="fc" id="L407">      return;</span>
+    }
+<span class="fc" id="L409">    byte c = consume();</span>
+<span class="fc bfc" id="L410" title="All 3 branches covered.">    switch (c) {</span>
+      case ' ':
+      case '\t':
+<span class="fc" id="L413">        readTrailingComments();</span>
+<span class="fc" id="L414">        return;</span>
+      case '/':
+<span class="fc bfc" id="L416" title="All 2 branches covered.">        if (peek('/')) {</span>
+<span class="pc bpc" id="L417" title="2 of 6 branches missed.">          while (!eof &amp;&amp; !peek('\n') &amp;&amp; !peek('\r')) {</span>
+<span class="fc" id="L418">            consume();</span>
+          }
+<span class="fc" id="L420">          createComment(TokenType.SINGLECOMMENT);</span>
+<span class="pc bpc" id="L421" title="1 of 2 branches missed.">          if (peek(&quot;\r\n&quot;)) {</span>
+<span class="nc" id="L422">            consume(2);</span>
+<span class="nc" id="L423">            readTrailingComments();</span>
+<span class="pc bpc" id="L424" title="1 of 2 branches missed.">          } else if (peek('\n')) {</span>
+<span class="fc" id="L425">            consume();</span>
+<span class="fc" id="L426">            readTrailingComments();</span>
+          }
+<span class="fc" id="L428">          return;</span>
+<span class="pc bpc" id="L429" title="1 of 2 branches missed.">        } else if (peek('*')) {</span>
+<span class="nc" id="L430">          consume();</span>
+<span class="nc bnc" id="L431" title="All 2 branches missed.">          while (!peek(&quot;*/&quot;)) {</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">            if (eof) {</span>
+<span class="nc" id="L433">              throw exception(</span>
+<span class="nc" id="L434">                  String.format(</span>
+                      &quot;Unterminated comment starting at %s&quot;,
+                      new Position(filename, startLine, startCol)));
+            }
+<span class="nc" id="L438">            consume();</span>
+          }
+<span class="nc" id="L440">          consume(2);</span>
+<span class="nc" id="L441">          createComment(TokenType.MULTICOMMENT);</span>
+<span class="nc" id="L442">          readTrailingComments();</span>
+<span class="nc" id="L443">          return;</span>
+        }
+        // Not a comment, we want to fall-through
+      default:
+<span class="fc" id="L447">        index--;</span>
+<span class="fc" id="L448">        col--;</span>
+<span class="fc" id="L449">        eof = false;</span>
+<span class="fc" id="L450">        return;</span>
+    }
+  }
+
+  private Token createToken(TokenType type) throws CompilerException {
+<span class="fc" id="L455">    var token = createRawToken(type);</span>
+<span class="fc" id="L456">    var preComments = List.copyOf(comments);</span>
+<span class="fc" id="L457">    comments.clear();</span>
+<span class="fc" id="L458">    readTrailingComments();</span>
+<span class="fc" id="L459">    var postComments = List.copyOf(comments);</span>
+<span class="fc" id="L460">    comments.clear();</span>
+<span class="fc" id="L461">    return new Token(token, preComments, postComments);</span>
+  }
+
+  private CompilerException exception(String msg) {
+<span class="fc" id="L465">    Position pos = null;</span>
+<span class="fc bfc" id="L466" title="All 2 branches covered.">    if (eof) {</span>
+<span class="fc" id="L467">      pos = new Position(filename, line, col);</span>
+    } else {
+<span class="fc" id="L469">      pos = new Position(filename, startLine, startCol);</span>
+    }
+<span class="fc" id="L471">    LOGGER.error(pos, msg);</span>
+<span class="fc" id="L472">    LOGGER.print();</span>
+<span class="fc" id="L473">    return new CompilerException(&quot;There were syntax errors&quot;);</span>
+  }
+
+  private boolean isDigit() {
+<span class="pc bpc" id="L477" title="1 of 2 branches missed.">    if (eof) {</span>
+<span class="nc" id="L478">      return false;</span>
+    }
+<span class="fc" id="L480">    return isDigit(input[index]);</span>
+  }
+
+  private boolean isDigit(byte c) {
+<span class="fc bfc" id="L484" title="All 4 branches covered.">    return '0' &lt;= c &amp;&amp; c &lt;= '9';</span>
+  }
+
+  private boolean isAlpha(byte c) {
+<span class="fc bfc" id="L488" title="All 10 branches covered.">    return ('A' &lt;= c &amp;&amp; c &lt;= 'Z') || ('a' &lt;= c &amp;&amp; c &lt;= 'z') || c == '_';</span>
+  }
+
+  private boolean isAlphaNumeric() {
+<span class="pc bpc" id="L492" title="1 of 2 branches missed.">    if (eof) {</span>
+<span class="nc" id="L493">      return false;</span>
+    }
+<span class="fc" id="L495">    return isAlphaNumeric(input[index]);</span>
+  }
+
+  private boolean isAlphaNumeric(byte c) {
+<span class="fc bfc" id="L499" title="All 4 branches covered.">    return isDigit(c) || isAlpha(c);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
