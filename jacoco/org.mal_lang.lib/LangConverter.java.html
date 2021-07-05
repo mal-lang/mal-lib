@@ -63,30 +63,46 @@ public class LangConverter {
 <span class="fc" id="L63">  private final Map&lt;String, List&lt;AST.Category&gt;&gt; astCategories = new LinkedHashMap&lt;&gt;();</span>
 <span class="fc" id="L64">  private final List&lt;AST.Association&gt; astAssociations = new ArrayList&lt;&gt;();</span>
 <span class="fc" id="L65">  private final Map&lt;String, String&gt; astDefines = new LinkedHashMap&lt;&gt;();</span>
+  private final Map&lt;String, byte[]&gt; svgIcons;
+  private final Map&lt;String, byte[]&gt; pngIcons;
+  private final String license;
+  private final String notice;
 
-<span class="fc" id="L67">  private LangConverter(AST ast, boolean verbose, boolean debug) {</span>
-<span class="fc" id="L68">    Locale.setDefault(Locale.ROOT);</span>
-<span class="fc" id="L69">    this.LOGGER = new MalLogger(&quot;LANG_CONVERTER&quot;, verbose, debug);</span>
+  private LangConverter(
+      AST ast,
+      boolean verbose,
+      boolean debug,
+      Map&lt;String, byte[]&gt; svgIcons,
+      Map&lt;String, byte[]&gt; pngIcons,
+      String license,
+<span class="fc" id="L78">      String notice) {</span>
+<span class="fc" id="L79">    Locale.setDefault(Locale.ROOT);</span>
+<span class="fc" id="L80">    this.LOGGER = new MalLogger(&quot;LANG_CONVERTER&quot;, verbose, debug);</span>
 
     // Collect defines
-<span class="fc bfc" id="L72" title="All 2 branches covered.">    for (var astDefine : ast.getDefines()) {</span>
-<span class="fc" id="L73">      this.astDefines.put(astDefine.key.id, astDefine.value);</span>
-<span class="fc" id="L74">    }</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    for (var astDefine : ast.getDefines()) {</span>
+<span class="fc" id="L84">      this.astDefines.put(astDefine.key.id, astDefine.value);</span>
+<span class="fc" id="L85">    }</span>
 
     // Collect categories
-<span class="fc" id="L77">    var allAstCategories = ast.getCategories();</span>
-<span class="fc bfc" id="L78" title="All 2 branches covered.">    for (var astCategory : allAstCategories) {</span>
-<span class="fc bfc" id="L79" title="All 2 branches covered.">      if (!this.astCategories.containsKey(astCategory.name.id)) {</span>
-<span class="fc" id="L80">        this.astCategories.put(astCategory.name.id, new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L88">    var allAstCategories = ast.getCategories();</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    for (var astCategory : allAstCategories) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">      if (!this.astCategories.containsKey(astCategory.name.id)) {</span>
+<span class="fc" id="L91">        this.astCategories.put(astCategory.name.id, new ArrayList&lt;&gt;());</span>
       }
-<span class="fc" id="L82">      this.astCategories.get(astCategory.name.id).add(astCategory);</span>
-<span class="fc" id="L83">    }</span>
+<span class="fc" id="L93">      this.astCategories.get(astCategory.name.id).add(astCategory);</span>
+<span class="fc" id="L94">    }</span>
 
     // Collect associations
-<span class="fc bfc" id="L86" title="All 2 branches covered.">    for (var astAssociation : ast.getAssociations()) {</span>
-<span class="fc" id="L87">      this.astAssociations.add(astAssociation);</span>
-<span class="fc" id="L88">    }</span>
-<span class="fc" id="L89">  }</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    for (var astAssociation : ast.getAssociations()) {</span>
+<span class="fc" id="L98">      this.astAssociations.add(astAssociation);</span>
+<span class="fc" id="L99">    }</span>
+
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">    this.svgIcons = svgIcons == null ? Map.of() : Map.copyOf(svgIcons);</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">    this.pngIcons = pngIcons == null ? Map.of() : Map.copyOf(pngIcons);</span>
+<span class="fc" id="L103">    this.license = license;</span>
+<span class="fc" id="L104">    this.notice = notice;</span>
+<span class="fc" id="L105">  }</span>
 
   /**
    * Converts an {@link org.mal_lang.lib.AST} object into a {@link org.mal_lang.langspec.Lang}
@@ -97,7 +113,7 @@ public class LangConverter {
    * @since 0.1.0
    */
   public static Lang convert(AST ast) {
-<span class="fc" id="L100">    return convert(ast, false, false);</span>
+<span class="fc" id="L116">    return convert(ast, false, false, null, null, null, null);</span>
   }
 
   /**
@@ -111,250 +127,333 @@ public class LangConverter {
    * @since 0.1.0
    */
   public static Lang convert(AST ast, boolean verbose, boolean debug) {
-<span class="fc" id="L114">    return new LangConverter(ast, verbose, debug).convertLog();</span>
+<span class="nc" id="L130">    return convert(ast, verbose, debug, null, null, null, null);</span>
+  }
+
+  /**
+   * Converts an {@link org.mal_lang.lib.AST} object into a {@link org.mal_lang.langspec.Lang}
+   * object.
+   *
+   * @param ast the {@link org.mal_lang.lib.AST} to convert
+   * @param svgIcons the SVG icons of the language, or {@code null}
+   * @param pngIcons the PNG icons of the language, or {@code null}
+   * @param license the license of the language, or {@code null}
+   * @param notice the notice of the language, or {@code null}
+   * @return a {@link org.mal_lang.langspec.Lang}
+   * @since 0.1.0
+   */
+  public static Lang convert(
+      AST ast,
+      Map&lt;String, byte[]&gt; svgIcons,
+      Map&lt;String, byte[]&gt; pngIcons,
+      String license,
+      String notice) {
+<span class="nc" id="L151">    return convert(ast, false, false, svgIcons, pngIcons, license, notice);</span>
+  }
+
+  /**
+   * Converts an {@link org.mal_lang.lib.AST} object into a {@link org.mal_lang.langspec.Lang}
+   * object.
+   *
+   * @param ast the {@link org.mal_lang.lib.AST} to convert
+   * @param verbose whether verbose information should be logged
+   * @param debug whether debug information should be logged
+   * @param svgIcons the SVG icons of the language, or {@code null}
+   * @param pngIcons the PNG icons of the language, or {@code null}
+   * @param license the license of the language, or {@code null}
+   * @param notice the notice of the language, or {@code null}
+   * @return a {@link org.mal_lang.langspec.Lang}
+   * @since 0.1.0
+   */
+  public static Lang convert(
+      AST ast,
+      boolean verbose,
+      boolean debug,
+      Map&lt;String, byte[]&gt; svgIcons,
+      Map&lt;String, byte[]&gt; pngIcons,
+      String license,
+      String notice) {
+<span class="fc" id="L176">    return new LangConverter(ast, verbose, debug, svgIcons, pngIcons, license, notice).convertLog();</span>
   }
 
   private Lang convertLog() {
-<span class="fc" id="L118">    var lang = this.convertLang();</span>
-<span class="fc" id="L119">    LOGGER.print();</span>
-<span class="fc" id="L120">    return lang;</span>
+<span class="fc" id="L180">    var lang = this.convertLang();</span>
+<span class="fc" id="L181">    LOGGER.print();</span>
+<span class="fc" id="L182">    return lang;</span>
   }
 
   private Lang convertLang() {
-<span class="fc" id="L124">    var langBuilder = new LangBuilder();</span>
+<span class="fc" id="L186">    var langBuilder = new LangBuilder();</span>
 
-<span class="fc bfc" id="L126" title="All 2 branches covered.">    for (var entry : this.astDefines.entrySet()) {</span>
-<span class="fc" id="L127">      langBuilder.addDefine(entry.getKey(), entry.getValue());</span>
-<span class="fc" id="L128">    }</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">    for (var entry : this.astDefines.entrySet()) {</span>
+<span class="fc" id="L189">      langBuilder.addDefine(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L190">    }</span>
 
-<span class="fc bfc" id="L130" title="All 2 branches covered.">    for (var entry : this.astCategories.entrySet()) {</span>
-<span class="fc" id="L131">      var categoryBuilder = new CategoryBuilder(entry.getKey());</span>
-<span class="fc bfc" id="L132" title="All 2 branches covered.">      for (var astCategory : entry.getValue()) {</span>
-<span class="fc bfc" id="L133" title="All 2 branches covered.">        for (var meta : astCategory.meta) {</span>
-<span class="fc" id="L134">          categoryBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
-<span class="fc" id="L135">        }</span>
-<span class="fc" id="L136">      }</span>
-<span class="fc" id="L137">      langBuilder.addCategory(categoryBuilder);</span>
-<span class="fc" id="L138">    }</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">    for (var entry : this.astCategories.entrySet()) {</span>
+<span class="fc" id="L193">      var categoryBuilder = new CategoryBuilder(entry.getKey());</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">      for (var astCategory : entry.getValue()) {</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        for (var meta : astCategory.meta) {</span>
+<span class="fc" id="L196">          categoryBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
+<span class="fc" id="L197">        }</span>
+<span class="fc" id="L198">      }</span>
+<span class="fc" id="L199">      langBuilder.addCategory(categoryBuilder);</span>
+<span class="fc" id="L200">    }</span>
 
-<span class="fc bfc" id="L140" title="All 2 branches covered.">    for (var astCategories : this.astCategories.values()) {</span>
-<span class="fc bfc" id="L141" title="All 2 branches covered.">      for (var astCategory : astCategories) {</span>
-<span class="fc bfc" id="L142" title="All 2 branches covered.">        for (var astAsset : astCategory.assets) {</span>
-<span class="fc" id="L143">          var assetBuilder =</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">    for (var astCategories : this.astCategories.values()) {</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">      for (var astCategory : astCategories) {</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        for (var astAsset : astCategory.assets) {</span>
+<span class="fc" id="L205">          var assetBuilder =</span>
               new AssetBuilder(
                   astAsset.name.id,
                   astCategory.name.id,
                   astAsset.isAbstract,
-<span class="fc bfc" id="L148" title="All 2 branches covered.">                  astAsset.parent.isPresent() ? astAsset.parent.get().id : null);</span>
-<span class="fc bfc" id="L149" title="All 2 branches covered.">          for (var meta : astAsset.meta) {</span>
-<span class="fc" id="L150">            assetBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
-<span class="fc" id="L151">          }</span>
-<span class="fc bfc" id="L152" title="All 2 branches covered.">          for (var astVariable : astAsset.variables) {</span>
-<span class="fc" id="L153">            var variableBuilder =</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">                  astAsset.parent.isPresent() ? astAsset.parent.get().id : null);</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">          for (var meta : astAsset.meta) {</span>
+<span class="fc" id="L212">            assetBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
+<span class="fc" id="L213">          }</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">          for (var astVariable : astAsset.variables) {</span>
+<span class="fc" id="L215">            var variableBuilder =</span>
                 new VariableBuilder(
-<span class="fc" id="L155">                    astVariable.name.id, this.convertStepExpression(astVariable.expr, false));</span>
-<span class="fc" id="L156">            assetBuilder.addVariable(variableBuilder);</span>
-<span class="fc" id="L157">          }</span>
-<span class="fc bfc" id="L158" title="All 2 branches covered.">          for (var astAttackStep : astAsset.attackSteps) {</span>
-<span class="fc" id="L159">            var name = astAttackStep.name.id;</span>
-<span class="fc" id="L160">            var type = this.convertAttackStepType(astAttackStep.type);</span>
+<span class="fc" id="L217">                    astVariable.name.id, this.convertStepExpression(astVariable.expr, false));</span>
+<span class="fc" id="L218">            assetBuilder.addVariable(variableBuilder);</span>
+<span class="fc" id="L219">          }</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">          for (var astAttackStep : astAsset.attackSteps) {</span>
+<span class="fc" id="L221">            var name = astAttackStep.name.id;</span>
+<span class="fc" id="L222">            var type = this.convertAttackStepType(astAttackStep.type);</span>
             var risk =
-<span class="fc bfc" id="L162" title="All 2 branches covered.">                astAttackStep.cia.isPresent() ? this.convertRisk(astAttackStep.cia.get()) : null;</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">                astAttackStep.cia.isPresent() ? this.convertRisk(astAttackStep.cia.get()) : null;</span>
             var ttc =
-<span class="fc bfc" id="L164" title="All 2 branches covered.">                astAttackStep.ttc.isPresent()</span>
-<span class="fc" id="L165">                    ? this.convertTtcExpression(astAttackStep.ttc.get())</span>
-<span class="fc" id="L166">                    : null;</span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">                astAttackStep.ttc.isPresent()</span>
+<span class="fc" id="L227">                    ? this.convertTtcExpression(astAttackStep.ttc.get())</span>
+<span class="fc" id="L228">                    : null;</span>
             var requires =
-<span class="fc bfc" id="L168" title="All 2 branches covered.">                astAttackStep.requires.isPresent()</span>
-<span class="fc" id="L169">                    ? this.convertRequires(astAttackStep.requires.get())</span>
-<span class="fc" id="L170">                    : null;</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">                astAttackStep.requires.isPresent()</span>
+<span class="fc" id="L231">                    ? this.convertRequires(astAttackStep.requires.get())</span>
+<span class="fc" id="L232">                    : null;</span>
             var reaches =
-<span class="fc bfc" id="L172" title="All 2 branches covered.">                astAttackStep.reaches.isPresent()</span>
-<span class="fc" id="L173">                    ? this.convertReaches(astAttackStep.reaches.get())</span>
-<span class="fc" id="L174">                    : null;</span>
-<span class="fc" id="L175">            var attackStepBuilder = new AttackStepBuilder(name, type, risk, ttc, requires, reaches);</span>
-<span class="fc bfc" id="L176" title="All 2 branches covered.">            for (var meta : astAttackStep.meta) {</span>
-<span class="fc" id="L177">              attackStepBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
-<span class="fc" id="L178">            }</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">            for (var tag : astAttackStep.tags) {</span>
-<span class="fc" id="L180">              attackStepBuilder.addTag(tag.id);</span>
-<span class="fc" id="L181">            }</span>
-<span class="fc" id="L182">            assetBuilder.addAttackStep(attackStepBuilder);</span>
-<span class="fc" id="L183">          }</span>
-<span class="fc" id="L184">          langBuilder.addAsset(assetBuilder);</span>
-<span class="fc" id="L185">        }</span>
-<span class="fc" id="L186">      }</span>
-<span class="fc" id="L187">    }</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">                astAttackStep.reaches.isPresent()</span>
+<span class="fc" id="L235">                    ? this.convertReaches(astAttackStep.reaches.get())</span>
+<span class="fc" id="L236">                    : null;</span>
+<span class="fc" id="L237">            var attackStepBuilder = new AttackStepBuilder(name, type, risk, ttc, requires, reaches);</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">            for (var meta : astAttackStep.meta) {</span>
+<span class="fc" id="L239">              attackStepBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
+<span class="fc" id="L240">            }</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">            for (var tag : astAttackStep.tags) {</span>
+<span class="fc" id="L242">              attackStepBuilder.addTag(tag.id);</span>
+<span class="fc" id="L243">            }</span>
+<span class="fc" id="L244">            assetBuilder.addAttackStep(attackStepBuilder);</span>
+<span class="fc" id="L245">          }</span>
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">          if (this.svgIcons.containsKey(assetBuilder.getName())) {</span>
+<span class="nc" id="L247">            assetBuilder.setSvgIcon(this.svgIcons.get(assetBuilder.getName()));</span>
+          }
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">          if (this.pngIcons.containsKey(assetBuilder.getName())) {</span>
+<span class="nc" id="L250">            assetBuilder.setPngIcon(this.pngIcons.get(assetBuilder.getName()));</span>
+          }
+<span class="fc" id="L252">          langBuilder.addAsset(assetBuilder);</span>
+<span class="fc" id="L253">        }</span>
+<span class="fc" id="L254">      }</span>
+<span class="fc" id="L255">    }</span>
 
-<span class="fc bfc" id="L189" title="All 2 branches covered.">    for (var astAssociation : this.astAssociations) {</span>
-<span class="fc" id="L190">      var associationBuilder =</span>
+<span class="pc bpc" id="L257" title="2 of 4 branches missed.">    if (!this.svgIcons.isEmpty() || !this.pngIcons.isEmpty()) {</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">      for (var assetBuilder : langBuilder.getAssets()) {</span>
+<span class="nc bnc" id="L259" title="All 4 branches missed.">        if (!assetBuilder.isAbstract() &amp;&amp; !LangConverter.assetHasIcon(langBuilder, assetBuilder)) {</span>
+<span class="nc" id="L260">          LOGGER.warning(String.format(&quot;No icon found for asset '%s'&quot;, assetBuilder.getName()));</span>
+        }
+<span class="nc" id="L262">      }</span>
+    }
+
+<span class="fc bfc" id="L265" title="All 2 branches covered.">    for (var astAssociation : this.astAssociations) {</span>
+<span class="fc" id="L266">      var associationBuilder =</span>
           new AssociationBuilder(
               astAssociation.linkName.id,
               astAssociation.leftAsset.id,
               astAssociation.leftField.id,
-<span class="fc" id="L195">              this.convertMultiplicity(astAssociation.leftMult),</span>
+<span class="fc" id="L271">              this.convertMultiplicity(astAssociation.leftMult),</span>
               astAssociation.rightAsset.id,
               astAssociation.rightField.id,
-<span class="fc" id="L198">              this.convertMultiplicity(astAssociation.rightMult));</span>
-<span class="fc bfc" id="L199" title="All 2 branches covered.">      for (var meta : astAssociation.meta) {</span>
-<span class="fc" id="L200">        associationBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
-<span class="fc" id="L201">      }</span>
-<span class="fc" id="L202">      langBuilder.addAssociation(associationBuilder);</span>
-<span class="fc" id="L203">    }</span>
+<span class="fc" id="L274">              this.convertMultiplicity(astAssociation.rightMult));</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">      for (var meta : astAssociation.meta) {</span>
+<span class="fc" id="L276">        associationBuilder.getMeta().addEntry(meta.type.id, meta.string);</span>
+<span class="fc" id="L277">      }</span>
+<span class="fc" id="L278">      langBuilder.addAssociation(associationBuilder);</span>
+<span class="fc" id="L279">    }</span>
 
-<span class="fc" id="L205">    return Lang.fromBuilder(langBuilder);</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">    if (this.license != null) {</span>
+<span class="nc" id="L282">      langBuilder.setLicense(this.license);</span>
+    }
+
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">    if (this.notice != null) {</span>
+<span class="nc" id="L286">      langBuilder.setNotice(this.notice);</span>
+    }
+
+<span class="fc" id="L289">    return Lang.fromBuilder(langBuilder);</span>
   }
 
   private AttackStepType convertAttackStepType(AST.AttackStepType astType) {
-<span class="pc bpc" id="L209" title="1 of 6 branches missed.">    switch (astType) {</span>
+<span class="pc bpc" id="L293" title="1 of 6 branches missed.">    switch (astType) {</span>
       case ANY:
-<span class="fc" id="L211">        return AttackStepType.OR;</span>
+<span class="fc" id="L295">        return AttackStepType.OR;</span>
       case ALL:
-<span class="fc" id="L213">        return AttackStepType.AND;</span>
+<span class="fc" id="L297">        return AttackStepType.AND;</span>
       case DEFENSE:
-<span class="fc" id="L215">        return AttackStepType.DEFENSE;</span>
+<span class="fc" id="L299">        return AttackStepType.DEFENSE;</span>
       case EXIST:
-<span class="fc" id="L217">        return AttackStepType.EXIST;</span>
+<span class="fc" id="L301">        return AttackStepType.EXIST;</span>
       case NOTEXIST:
-<span class="fc" id="L219">        return AttackStepType.NOT_EXIST;</span>
+<span class="fc" id="L303">        return AttackStepType.NOT_EXIST;</span>
       default:
-<span class="nc" id="L221">        throw new RuntimeException(String.format(&quot;Invalid attack step type %s&quot;, astType));</span>
+<span class="nc" id="L305">        throw new RuntimeException(String.format(&quot;Invalid attack step type %s&quot;, astType));</span>
     }
   }
 
   private Risk convertRisk(List&lt;AST.CIA&gt; astCiaList) {
-<span class="fc" id="L226">    boolean isConfidentiality = false;</span>
-<span class="fc" id="L227">    boolean isIntegrity = false;</span>
-<span class="fc" id="L228">    boolean isAvailability = false;</span>
-<span class="fc bfc" id="L229" title="All 2 branches covered.">    for (var astCia : astCiaList) {</span>
-<span class="pc bpc" id="L230" title="1 of 4 branches missed.">      switch (astCia) {</span>
+<span class="fc" id="L310">    boolean isConfidentiality = false;</span>
+<span class="fc" id="L311">    boolean isIntegrity = false;</span>
+<span class="fc" id="L312">    boolean isAvailability = false;</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">    for (var astCia : astCiaList) {</span>
+<span class="pc bpc" id="L314" title="1 of 4 branches missed.">      switch (astCia) {</span>
         case C:
-<span class="fc" id="L232">          isConfidentiality = true;</span>
-<span class="fc" id="L233">          break;</span>
+<span class="fc" id="L316">          isConfidentiality = true;</span>
+<span class="fc" id="L317">          break;</span>
         case I:
-<span class="fc" id="L235">          isIntegrity = true;</span>
-<span class="fc" id="L236">          break;</span>
+<span class="fc" id="L319">          isIntegrity = true;</span>
+<span class="fc" id="L320">          break;</span>
         case A:
-<span class="fc" id="L238">          isAvailability = true;</span>
+<span class="fc" id="L322">          isAvailability = true;</span>
           break;
       }
-<span class="fc" id="L241">    }</span>
-<span class="fc" id="L242">    return new Risk(isConfidentiality, isIntegrity, isAvailability);</span>
+<span class="fc" id="L325">    }</span>
+<span class="fc" id="L326">    return new Risk(isConfidentiality, isIntegrity, isAvailability);</span>
   }
 
   private TtcExpression convertTtcExpression(AST.TTCExpr astTtcExpression) {
-<span class="fc bfc" id="L246" title="All 2 branches covered.">    if (astTtcExpression instanceof AST.TTCAddExpr) {</span>
-<span class="fc" id="L247">      var astTtcAddition = (AST.TTCAddExpr) astTtcExpression;</span>
-<span class="fc" id="L248">      return new TtcAddition(</span>
-<span class="fc" id="L249">          this.convertTtcExpression(astTtcAddition.lhs),</span>
-<span class="fc" id="L250">          this.convertTtcExpression(astTtcAddition.rhs));</span>
-<span class="fc bfc" id="L251" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCSubExpr) {</span>
-<span class="fc" id="L252">      var astTtcSubtraction = (AST.TTCSubExpr) astTtcExpression;</span>
-<span class="fc" id="L253">      return new TtcSubtraction(</span>
-<span class="fc" id="L254">          this.convertTtcExpression(astTtcSubtraction.lhs),</span>
-<span class="fc" id="L255">          this.convertTtcExpression(astTtcSubtraction.rhs));</span>
-<span class="fc bfc" id="L256" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCMulExpr) {</span>
-<span class="fc" id="L257">      var astTtcMultiplication = (AST.TTCMulExpr) astTtcExpression;</span>
-<span class="fc" id="L258">      return new TtcMultiplication(</span>
-<span class="fc" id="L259">          this.convertTtcExpression(astTtcMultiplication.lhs),</span>
-<span class="fc" id="L260">          this.convertTtcExpression(astTtcMultiplication.rhs));</span>
-<span class="fc bfc" id="L261" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCDivExpr) {</span>
-<span class="fc" id="L262">      var astTtcDivision = (AST.TTCDivExpr) astTtcExpression;</span>
-<span class="fc" id="L263">      return new TtcDivision(</span>
-<span class="fc" id="L264">          this.convertTtcExpression(astTtcDivision.lhs),</span>
-<span class="fc" id="L265">          this.convertTtcExpression(astTtcDivision.rhs));</span>
-<span class="fc bfc" id="L266" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCPowExpr) {</span>
-<span class="fc" id="L267">      var astTtcExponentiation = (AST.TTCPowExpr) astTtcExpression;</span>
-<span class="fc" id="L268">      return new TtcExponentiation(</span>
-<span class="fc" id="L269">          this.convertTtcExpression(astTtcExponentiation.lhs),</span>
-<span class="fc" id="L270">          this.convertTtcExpression(astTtcExponentiation.rhs));</span>
-<span class="fc bfc" id="L271" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCFuncExpr) {</span>
-<span class="fc" id="L272">      var astTtcFunction = (AST.TTCFuncExpr) astTtcExpression;</span>
-<span class="fc" id="L273">      return new TtcFunction(</span>
-<span class="fc" id="L274">          TtcDistribution.fromString(astTtcFunction.name.id),</span>
-<span class="fc" id="L275">          astTtcFunction.params.stream().mapToDouble(x -&gt; x).toArray());</span>
-<span class="pc bpc" id="L276" title="1 of 2 branches missed.">    } else if (astTtcExpression instanceof AST.TTCNumExpr) {</span>
-<span class="fc" id="L277">      var astTtcNumber = (AST.TTCNumExpr) astTtcExpression;</span>
-<span class="fc" id="L278">      return new TtcNumber(astTtcNumber.value);</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">    if (astTtcExpression instanceof AST.TTCAddExpr) {</span>
+<span class="fc" id="L331">      var astTtcAddition = (AST.TTCAddExpr) astTtcExpression;</span>
+<span class="fc" id="L332">      return new TtcAddition(</span>
+<span class="fc" id="L333">          this.convertTtcExpression(astTtcAddition.lhs),</span>
+<span class="fc" id="L334">          this.convertTtcExpression(astTtcAddition.rhs));</span>
+<span class="fc bfc" id="L335" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCSubExpr) {</span>
+<span class="fc" id="L336">      var astTtcSubtraction = (AST.TTCSubExpr) astTtcExpression;</span>
+<span class="fc" id="L337">      return new TtcSubtraction(</span>
+<span class="fc" id="L338">          this.convertTtcExpression(astTtcSubtraction.lhs),</span>
+<span class="fc" id="L339">          this.convertTtcExpression(astTtcSubtraction.rhs));</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCMulExpr) {</span>
+<span class="fc" id="L341">      var astTtcMultiplication = (AST.TTCMulExpr) astTtcExpression;</span>
+<span class="fc" id="L342">      return new TtcMultiplication(</span>
+<span class="fc" id="L343">          this.convertTtcExpression(astTtcMultiplication.lhs),</span>
+<span class="fc" id="L344">          this.convertTtcExpression(astTtcMultiplication.rhs));</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCDivExpr) {</span>
+<span class="fc" id="L346">      var astTtcDivision = (AST.TTCDivExpr) astTtcExpression;</span>
+<span class="fc" id="L347">      return new TtcDivision(</span>
+<span class="fc" id="L348">          this.convertTtcExpression(astTtcDivision.lhs),</span>
+<span class="fc" id="L349">          this.convertTtcExpression(astTtcDivision.rhs));</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCPowExpr) {</span>
+<span class="fc" id="L351">      var astTtcExponentiation = (AST.TTCPowExpr) astTtcExpression;</span>
+<span class="fc" id="L352">      return new TtcExponentiation(</span>
+<span class="fc" id="L353">          this.convertTtcExpression(astTtcExponentiation.lhs),</span>
+<span class="fc" id="L354">          this.convertTtcExpression(astTtcExponentiation.rhs));</span>
+<span class="fc bfc" id="L355" title="All 2 branches covered.">    } else if (astTtcExpression instanceof AST.TTCFuncExpr) {</span>
+<span class="fc" id="L356">      var astTtcFunction = (AST.TTCFuncExpr) astTtcExpression;</span>
+<span class="fc" id="L357">      return new TtcFunction(</span>
+<span class="fc" id="L358">          TtcDistribution.fromString(astTtcFunction.name.id),</span>
+<span class="fc" id="L359">          astTtcFunction.params.stream().mapToDouble(x -&gt; x).toArray());</span>
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">    } else if (astTtcExpression instanceof AST.TTCNumExpr) {</span>
+<span class="fc" id="L361">      var astTtcNumber = (AST.TTCNumExpr) astTtcExpression;</span>
+<span class="fc" id="L362">      return new TtcNumber(astTtcNumber.value);</span>
     } else {
-<span class="nc" id="L280">      throw new RuntimeException(</span>
-<span class="nc" id="L281">          String.format(&quot;Invalid TTC expression type %s&quot;, astTtcExpression.getClass().getName()));</span>
+<span class="nc" id="L364">      throw new RuntimeException(</span>
+<span class="nc" id="L365">          String.format(&quot;Invalid TTC expression type %s&quot;, astTtcExpression.getClass().getName()));</span>
     }
   }
 
   private StepsBuilder convertRequires(AST.Requires astRequires) {
-<span class="fc" id="L286">    var stepsBuilder = new StepsBuilder(true);</span>
-<span class="fc bfc" id="L287" title="All 2 branches covered.">    for (var astStepExpression : astRequires.requires) {</span>
-<span class="fc" id="L288">      stepsBuilder.addStepExpression(this.convertStepExpression(astStepExpression, false));</span>
-<span class="fc" id="L289">    }</span>
-<span class="fc" id="L290">    return stepsBuilder;</span>
+<span class="fc" id="L370">    var stepsBuilder = new StepsBuilder(true);</span>
+<span class="fc bfc" id="L371" title="All 2 branches covered.">    for (var astStepExpression : astRequires.requires) {</span>
+<span class="fc" id="L372">      stepsBuilder.addStepExpression(this.convertStepExpression(astStepExpression, false));</span>
+<span class="fc" id="L373">    }</span>
+<span class="fc" id="L374">    return stepsBuilder;</span>
   }
 
   private StepsBuilder convertReaches(AST.Reaches astReaches) {
-<span class="fc bfc" id="L294" title="All 2 branches covered.">    var stepsBuilder = new StepsBuilder(!astReaches.inherits);</span>
-<span class="fc bfc" id="L295" title="All 2 branches covered.">    for (var astStepExpression : astReaches.reaches) {</span>
-<span class="fc" id="L296">      stepsBuilder.addStepExpression(this.convertStepExpression(astStepExpression, true));</span>
-<span class="fc" id="L297">    }</span>
-<span class="fc" id="L298">    return stepsBuilder;</span>
+<span class="fc bfc" id="L378" title="All 2 branches covered.">    var stepsBuilder = new StepsBuilder(!astReaches.inherits);</span>
+<span class="fc bfc" id="L379" title="All 2 branches covered.">    for (var astStepExpression : astReaches.reaches) {</span>
+<span class="fc" id="L380">      stepsBuilder.addStepExpression(this.convertStepExpression(astStepExpression, true));</span>
+<span class="fc" id="L381">    }</span>
+<span class="fc" id="L382">    return stepsBuilder;</span>
   }
 
   private StepExpressionBuilder convertStepExpression(AST.Expr astExpr, boolean isAttackStep) {
-<span class="fc bfc" id="L302" title="All 2 branches covered.">    if (astExpr instanceof AST.UnionExpr) {</span>
-<span class="fc" id="L303">      var astStepUnion = (AST.UnionExpr) astExpr;</span>
-<span class="fc" id="L304">      return new StepUnionBuilder(</span>
-<span class="fc" id="L305">          this.convertStepExpression(astStepUnion.lhs, false),</span>
-<span class="fc" id="L306">          this.convertStepExpression(astStepUnion.rhs, isAttackStep));</span>
-<span class="fc bfc" id="L307" title="All 2 branches covered.">    } else if (astExpr instanceof AST.IntersectionExpr) {</span>
-<span class="fc" id="L308">      var astStepIntersection = (AST.IntersectionExpr) astExpr;</span>
-<span class="fc" id="L309">      return new StepIntersectionBuilder(</span>
-<span class="fc" id="L310">          this.convertStepExpression(astStepIntersection.lhs, false),</span>
-<span class="fc" id="L311">          this.convertStepExpression(astStepIntersection.rhs, isAttackStep));</span>
-<span class="fc bfc" id="L312" title="All 2 branches covered.">    } else if (astExpr instanceof AST.DifferenceExpr) {</span>
-<span class="fc" id="L313">      var astStepDifference = (AST.DifferenceExpr) astExpr;</span>
-<span class="fc" id="L314">      return new StepDifferenceBuilder(</span>
-<span class="fc" id="L315">          this.convertStepExpression(astStepDifference.lhs, false),</span>
-<span class="fc" id="L316">          this.convertStepExpression(astStepDifference.rhs, isAttackStep));</span>
-<span class="fc bfc" id="L317" title="All 2 branches covered.">    } else if (astExpr instanceof AST.StepExpr) {</span>
-<span class="fc" id="L318">      var astStepCollect = (AST.StepExpr) astExpr;</span>
-<span class="fc" id="L319">      return new StepCollectBuilder(</span>
-<span class="fc" id="L320">          this.convertStepExpression(astStepCollect.lhs, false),</span>
-<span class="fc" id="L321">          this.convertStepExpression(astStepCollect.rhs, isAttackStep));</span>
-<span class="fc bfc" id="L322" title="All 2 branches covered.">    } else if (astExpr instanceof AST.TransitiveExpr) {</span>
-<span class="fc" id="L323">      var astStepTransitive = (AST.TransitiveExpr) astExpr;</span>
-<span class="fc" id="L324">      return new StepTransitiveBuilder(this.convertStepExpression(astStepTransitive.e, false));</span>
-<span class="fc bfc" id="L325" title="All 2 branches covered.">    } else if (astExpr instanceof AST.SubTypeExpr) {</span>
-<span class="fc" id="L326">      var astStepSubType = (AST.SubTypeExpr) astExpr;</span>
-<span class="fc" id="L327">      return new StepSubTypeBuilder(</span>
-<span class="fc" id="L328">          astStepSubType.subType.id, this.convertStepExpression(astStepSubType.e, false));</span>
-<span class="fc bfc" id="L329" title="All 2 branches covered.">    } else if (astExpr instanceof AST.IDExpr) {</span>
-<span class="fc" id="L330">      var astStepId = (AST.IDExpr) astExpr;</span>
-<span class="fc bfc" id="L331" title="All 2 branches covered.">      if (isAttackStep) {</span>
-<span class="fc" id="L332">        return new StepAttackStepBuilder(astStepId.id.id);</span>
+<span class="fc bfc" id="L386" title="All 2 branches covered.">    if (astExpr instanceof AST.UnionExpr) {</span>
+<span class="fc" id="L387">      var astStepUnion = (AST.UnionExpr) astExpr;</span>
+<span class="fc" id="L388">      return new StepUnionBuilder(</span>
+<span class="fc" id="L389">          this.convertStepExpression(astStepUnion.lhs, false),</span>
+<span class="fc" id="L390">          this.convertStepExpression(astStepUnion.rhs, isAttackStep));</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">    } else if (astExpr instanceof AST.IntersectionExpr) {</span>
+<span class="fc" id="L392">      var astStepIntersection = (AST.IntersectionExpr) astExpr;</span>
+<span class="fc" id="L393">      return new StepIntersectionBuilder(</span>
+<span class="fc" id="L394">          this.convertStepExpression(astStepIntersection.lhs, false),</span>
+<span class="fc" id="L395">          this.convertStepExpression(astStepIntersection.rhs, isAttackStep));</span>
+<span class="fc bfc" id="L396" title="All 2 branches covered.">    } else if (astExpr instanceof AST.DifferenceExpr) {</span>
+<span class="fc" id="L397">      var astStepDifference = (AST.DifferenceExpr) astExpr;</span>
+<span class="fc" id="L398">      return new StepDifferenceBuilder(</span>
+<span class="fc" id="L399">          this.convertStepExpression(astStepDifference.lhs, false),</span>
+<span class="fc" id="L400">          this.convertStepExpression(astStepDifference.rhs, isAttackStep));</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">    } else if (astExpr instanceof AST.StepExpr) {</span>
+<span class="fc" id="L402">      var astStepCollect = (AST.StepExpr) astExpr;</span>
+<span class="fc" id="L403">      return new StepCollectBuilder(</span>
+<span class="fc" id="L404">          this.convertStepExpression(astStepCollect.lhs, false),</span>
+<span class="fc" id="L405">          this.convertStepExpression(astStepCollect.rhs, isAttackStep));</span>
+<span class="fc bfc" id="L406" title="All 2 branches covered.">    } else if (astExpr instanceof AST.TransitiveExpr) {</span>
+<span class="fc" id="L407">      var astStepTransitive = (AST.TransitiveExpr) astExpr;</span>
+<span class="fc" id="L408">      return new StepTransitiveBuilder(this.convertStepExpression(astStepTransitive.e, false));</span>
+<span class="fc bfc" id="L409" title="All 2 branches covered.">    } else if (astExpr instanceof AST.SubTypeExpr) {</span>
+<span class="fc" id="L410">      var astStepSubType = (AST.SubTypeExpr) astExpr;</span>
+<span class="fc" id="L411">      return new StepSubTypeBuilder(</span>
+<span class="fc" id="L412">          astStepSubType.subType.id, this.convertStepExpression(astStepSubType.e, false));</span>
+<span class="fc bfc" id="L413" title="All 2 branches covered.">    } else if (astExpr instanceof AST.IDExpr) {</span>
+<span class="fc" id="L414">      var astStepId = (AST.IDExpr) astExpr;</span>
+<span class="fc bfc" id="L415" title="All 2 branches covered.">      if (isAttackStep) {</span>
+<span class="fc" id="L416">        return new StepAttackStepBuilder(astStepId.id.id);</span>
       } else {
-<span class="fc" id="L334">        return new StepFieldBuilder(astStepId.id.id);</span>
+<span class="fc" id="L418">        return new StepFieldBuilder(astStepId.id.id);</span>
       }
-<span class="pc bpc" id="L336" title="1 of 2 branches missed.">    } else if (astExpr instanceof AST.CallExpr) {</span>
-<span class="fc" id="L337">      var astStepVariable = (AST.CallExpr) astExpr;</span>
-<span class="fc" id="L338">      return new StepVariableBuilder(astStepVariable.id.id);</span>
+<span class="pc bpc" id="L420" title="1 of 2 branches missed.">    } else if (astExpr instanceof AST.CallExpr) {</span>
+<span class="fc" id="L421">      var astStepVariable = (AST.CallExpr) astExpr;</span>
+<span class="fc" id="L422">      return new StepVariableBuilder(astStepVariable.id.id);</span>
     } else {
-<span class="nc" id="L340">      throw new RuntimeException(</span>
-<span class="nc" id="L341">          String.format(&quot;Invalid step expression type %s&quot;, astExpr.getClass().getName()));</span>
+<span class="nc" id="L424">      throw new RuntimeException(</span>
+<span class="nc" id="L425">          String.format(&quot;Invalid step expression type %s&quot;, astExpr.getClass().getName()));</span>
     }
   }
 
   private Multiplicity convertMultiplicity(AST.Multiplicity astMultiplicity) {
-<span class="pc bpc" id="L346" title="1 of 5 branches missed.">    switch (astMultiplicity) {</span>
+<span class="pc bpc" id="L430" title="1 of 5 branches missed.">    switch (astMultiplicity) {</span>
       case ZERO_OR_ONE:
-<span class="fc" id="L348">        return Multiplicity.ZERO_OR_ONE;</span>
+<span class="fc" id="L432">        return Multiplicity.ZERO_OR_ONE;</span>
       case ZERO_OR_MORE:
-<span class="fc" id="L350">        return Multiplicity.ZERO_OR_MORE;</span>
+<span class="fc" id="L434">        return Multiplicity.ZERO_OR_MORE;</span>
       case ONE:
-<span class="fc" id="L352">        return Multiplicity.ONE;</span>
+<span class="fc" id="L436">        return Multiplicity.ONE;</span>
       case ONE_OR_MORE:
-<span class="fc" id="L354">        return Multiplicity.ONE_OR_MORE;</span>
+<span class="fc" id="L438">        return Multiplicity.ONE_OR_MORE;</span>
       default:
-<span class="nc" id="L356">        throw new RuntimeException(String.format(&quot;Invalid multiplicity %s&quot;, astMultiplicity));</span>
+<span class="nc" id="L440">        throw new RuntimeException(String.format(&quot;Invalid multiplicity %s&quot;, astMultiplicity));</span>
     }
+  }
+
+  private static boolean assetHasIcon(LangBuilder langBuilder, AssetBuilder assetBuilder) {
+<span class="nc bnc" id="L445" title="All 4 branches missed.">    if (assetBuilder.getSvgIcon() != null || assetBuilder.getPngIcon() != null) {</span>
+<span class="nc" id="L446">      return true;</span>
+    }
+<span class="nc bnc" id="L448" title="All 2 branches missed.">    if (assetBuilder.getSuperAsset() == null) {</span>
+<span class="nc" id="L449">      return false;</span>
+    }
+<span class="nc bnc" id="L451" title="All 2 branches missed.">    for (var superAssetBuilder : langBuilder.getAssets()) {</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">      if (superAssetBuilder.getName().equals(assetBuilder.getSuperAsset())) {</span>
+<span class="nc" id="L453">        return LangConverter.assetHasIcon(langBuilder, superAssetBuilder);</span>
+      }
+<span class="nc" id="L455">    }</span>
+<span class="nc" id="L456">    throw new IllegalStateException();</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
