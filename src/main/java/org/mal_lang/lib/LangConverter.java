@@ -63,8 +63,19 @@ public class LangConverter {
   private final Map<String, List<AST.Category>> astCategories = new LinkedHashMap<>();
   private final List<AST.Association> astAssociations = new ArrayList<>();
   private final Map<String, String> astDefines = new LinkedHashMap<>();
+  private final Map<String, byte[]> svgIcons;
+  private final Map<String, byte[]> pngIcons;
+  private final String license;
+  private final String notice;
 
-  private LangConverter(AST ast, boolean verbose, boolean debug) {
+  private LangConverter(
+      AST ast,
+      boolean verbose,
+      boolean debug,
+      Map<String, byte[]> svgIcons,
+      Map<String, byte[]> pngIcons,
+      String license,
+      String notice) {
     Locale.setDefault(Locale.ROOT);
     this.LOGGER = new MalLogger("LANG_CONVERTER", verbose, debug);
 
@@ -86,6 +97,11 @@ public class LangConverter {
     for (var astAssociation : ast.getAssociations()) {
       this.astAssociations.add(astAssociation);
     }
+
+    this.svgIcons = svgIcons == null ? Map.of() : Map.copyOf(svgIcons);
+    this.pngIcons = pngIcons == null ? Map.of() : Map.copyOf(pngIcons);
+    this.license = license;
+    this.notice = notice;
   }
 
   /**
@@ -97,7 +113,7 @@ public class LangConverter {
    * @since 0.1.0
    */
   public static Lang convert(AST ast) {
-    return convert(ast, false, false);
+    return convert(ast, false, false, null, null, null, null);
   }
 
   /**
@@ -111,7 +127,53 @@ public class LangConverter {
    * @since 0.1.0
    */
   public static Lang convert(AST ast, boolean verbose, boolean debug) {
-    return new LangConverter(ast, verbose, debug).convertLog();
+    return convert(ast, verbose, debug, null, null, null, null);
+  }
+
+  /**
+   * Converts an {@link org.mal_lang.lib.AST} object into a {@link org.mal_lang.langspec.Lang}
+   * object.
+   *
+   * @param ast the {@link org.mal_lang.lib.AST} to convert
+   * @param svgIcons the SVG icons of the language, or {@code null}
+   * @param pngIcons the PNG icons of the language, or {@code null}
+   * @param license the license of the language, or {@code null}
+   * @param notice the notice of the language, or {@code null}
+   * @return a {@link org.mal_lang.langspec.Lang}
+   * @since 0.1.0
+   */
+  public static Lang convert(
+      AST ast,
+      Map<String, byte[]> svgIcons,
+      Map<String, byte[]> pngIcons,
+      String license,
+      String notice) {
+    return convert(ast, false, false, svgIcons, pngIcons, license, notice);
+  }
+
+  /**
+   * Converts an {@link org.mal_lang.lib.AST} object into a {@link org.mal_lang.langspec.Lang}
+   * object.
+   *
+   * @param ast the {@link org.mal_lang.lib.AST} to convert
+   * @param verbose whether verbose information should be logged
+   * @param debug whether debug information should be logged
+   * @param svgIcons the SVG icons of the language, or {@code null}
+   * @param pngIcons the PNG icons of the language, or {@code null}
+   * @param license the license of the language, or {@code null}
+   * @param notice the notice of the language, or {@code null}
+   * @return a {@link org.mal_lang.langspec.Lang}
+   * @since 0.1.0
+   */
+  public static Lang convert(
+      AST ast,
+      boolean verbose,
+      boolean debug,
+      Map<String, byte[]> svgIcons,
+      Map<String, byte[]> pngIcons,
+      String license,
+      String notice) {
+    return new LangConverter(ast, verbose, debug, svgIcons, pngIcons, license, notice).convertLog();
   }
 
   private Lang convertLog() {
@@ -181,7 +243,21 @@ public class LangConverter {
             }
             assetBuilder.addAttackStep(attackStepBuilder);
           }
+          if (this.svgIcons.containsKey(assetBuilder.getName())) {
+            assetBuilder.setSvgIcon(this.svgIcons.get(assetBuilder.getName()));
+          }
+          if (this.pngIcons.containsKey(assetBuilder.getName())) {
+            assetBuilder.setPngIcon(this.pngIcons.get(assetBuilder.getName()));
+          }
           langBuilder.addAsset(assetBuilder);
+        }
+      }
+    }
+
+    if (!this.svgIcons.isEmpty() || !this.pngIcons.isEmpty()) {
+      for (var assetBuilder : langBuilder.getAssets()) {
+        if (!assetBuilder.isAbstract() && !LangConverter.assetHasIcon(langBuilder, assetBuilder)) {
+          LOGGER.warning(String.format("No icon found for asset '%s'", assetBuilder.getName()));
         }
       }
     }
@@ -200,6 +276,14 @@ public class LangConverter {
         associationBuilder.getMeta().addEntry(meta.type.id, meta.string);
       }
       langBuilder.addAssociation(associationBuilder);
+    }
+
+    if (this.license != null) {
+      langBuilder.setLicense(this.license);
+    }
+
+    if (this.notice != null) {
+      langBuilder.setNotice(this.notice);
     }
 
     return Lang.fromBuilder(langBuilder);
@@ -355,5 +439,20 @@ public class LangConverter {
       default:
         throw new RuntimeException(String.format("Invalid multiplicity %s", astMultiplicity));
     }
+  }
+
+  private static boolean assetHasIcon(LangBuilder langBuilder, AssetBuilder assetBuilder) {
+    if (assetBuilder.getSvgIcon() != null || assetBuilder.getPngIcon() != null) {
+      return true;
+    }
+    if (assetBuilder.getSuperAsset() == null) {
+      return false;
+    }
+    for (var superAssetBuilder : langBuilder.getAssets()) {
+      if (superAssetBuilder.getName().equals(assetBuilder.getSuperAsset())) {
+        return LangConverter.assetHasIcon(langBuilder, superAssetBuilder);
+      }
+    }
+    throw new IllegalStateException();
   }
 }
