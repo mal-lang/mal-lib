@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.mal-lang</groupId>
     <artifactId>mal-parent</artifactId>
-    <version>5</version>
+    <version>6</version>
     <relativePath/>
   </parent>
 
@@ -30,6 +30,7 @@ limitations under the License.
 
   <name>MAL lib</name>
   <description>A Java library for compiling MAL specifications.</description>
+  <url>${project.organization.url}/${project.artifactId}</url>
   <inceptionYear>2019</inceptionYear>
   <licenses>
     <license>
@@ -73,13 +74,14 @@ limitations under the License.
 
   <scm>
     <tag>HEAD</tag>
+    <url>https://github.com/mal-lang/${project.artifactId}</url>
   </scm>
 
   <dependencies>
     <dependency>
       <groupId>org.mal-lang</groupId>
       <artifactId>mal-langspec</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
