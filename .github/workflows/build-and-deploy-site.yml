@@ -1,8 +1,8 @@
 name: Build and Deploy Site
 on:
   push:
-    branches:
-    - master
+    tags:
+    - release/*
 jobs:
   build-and-deploy-site:
     runs-on: ubuntu-latest
