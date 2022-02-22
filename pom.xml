@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.mal-lang</groupId>
     <artifactId>mal-parent</artifactId>
-    <version>8-SNAPSHOT</version>
+    <version>8</version>
     <relativePath/>
   </parent>
 
@@ -81,7 +81,7 @@ limitations under the License.
     <dependency>
       <groupId>org.mal-lang</groupId>
       <artifactId>mal-langspec</artifactId>
-      <version>1.0.2-SNAPSHOT</version>
+      <version>1.0.2</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
