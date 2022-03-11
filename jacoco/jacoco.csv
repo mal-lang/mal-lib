@@ -1,9 +1,9 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-MAL lib,org.mal_lang.lib,Distributions.Disabled,7,0,0,0,3,0,3,0,3,0
 MAL lib,org.mal_lang.lib,Distributions.Infinity,7,0,0,0,3,0,3,0,3,0
+MAL lib,org.mal_lang.lib,Distributions.Disabled,7,0,0,0,3,0,3,0,3,0
 MAL lib,org.mal_lang.lib,Distributions.TruncatedNormal,42,34,1,5,8,7,5,3,4,1
-MAL lib,org.mal_lang.lib,AST.Define,0,108,0,4,0,15,0,5,0,3
 MAL lib,org.mal_lang.lib,Distributions.VeryHardAndCertain,14,0,0,0,4,0,4,0,4,0
+MAL lib,org.mal_lang.lib,AST.Define,0,108,0,4,0,15,0,5,0,3
 MAL lib,org.mal_lang.lib,AST.AttackStep,48,302,5,11,5,41,4,7,0,3
 MAL lib,org.mal_lang.lib,Distributions.Binomial,48,34,1,5,8,7,5,3,4,1
 MAL lib,org.mal_lang.lib,AST.AttackStepType,0,54,0,0,0,6,0,1,0,1
@@ -11,9 +11,9 @@ MAL lib,org.mal_lang.lib,MalLogger.MalLevel,0,42,0,0,0,6,0,2,0,2
 MAL lib,org.mal_lang.lib,AST.Reaches,0,74,0,2,0,12,0,3,0,2
 MAL lib,org.mal_lang.lib,TokenType,0,532,0,0,0,52,0,3,0,3
 MAL lib,org.mal_lang.lib,CompilerException,4,4,0,0,2,2,1,1,1,1
+MAL lib,org.mal_lang.lib,Token,57,127,4,0,15,40,4,5,1,5
 MAL lib,org.mal_lang.lib,AST.Expr,0,85,0,4,0,12,0,4,0,2
 MAL lib,org.mal_lang.lib,Distributions,103,48,19,10,21,21,20,10,2,1
-MAL lib,org.mal_lang.lib,Token,57,127,4,0,15,40,4,5,1,5
 MAL lib,org.mal_lang.lib,AST.Multiplicity,3,56,0,0,1,8,1,2,1,2
 MAL lib,org.mal_lang.lib,Distributions.Bernoulli,28,34,1,5,7,7,5,3,4,1
 MAL lib,org.mal_lang.lib,AST,0,137,0,0,0,28,0,9,0,9
@@ -23,20 +23,20 @@ MAL lib,org.mal_lang.lib,Distributions.EasyAndCertain,14,0,0,0,4,0,4,0,4,0
 MAL lib,org.mal_lang.lib,Analyzer,229,2431,30,268,45,489,29,172,0,52
 MAL lib,org.mal_lang.lib,AST.Meta,0,108,0,4,0,15,0,5,0,3
 MAL lib,org.mal_lang.lib,Distributions.HardAndUncertain,22,0,0,0,5,0,4,0,4,0
-MAL lib,org.mal_lang.lib,AST.TTCNumExpr,16,7,0,0,1,3,1,1,1,1
-MAL lib,org.mal_lang.lib,Distributions.Combination,0,14,1,3,0,4,1,2,0,1
 MAL lib,org.mal_lang.lib,AST.Asset,0,220,0,8,0,33,0,7,0,3
+MAL lib,org.mal_lang.lib,Distributions.Combination,0,14,1,3,0,4,1,2,0,1
+MAL lib,org.mal_lang.lib,AST.TTCNumExpr,16,7,0,0,1,3,1,1,1,1
 MAL lib,org.mal_lang.lib,AST.SubTypeExpr,0,30,0,0,0,5,0,2,0,2
 MAL lib,org.mal_lang.lib,AST.TTCDivExpr,0,28,0,0,0,3,0,2,0,2
 MAL lib,org.mal_lang.lib,Lexer,167,1179,39,154,34,239,31,102,2,21
 MAL lib,org.mal_lang.lib,MalLogger.LogMessagePosition,2,62,1,5,1,14,1,5,0,3
-MAL lib,org.mal_lang.lib,AST.TTCAddExpr,0,28,0,0,0,3,0,2,0,2
 MAL lib,org.mal_lang.lib,AST.Association,0,235,0,4,0,36,0,6,0,4
+MAL lib,org.mal_lang.lib,AST.TTCAddExpr,0,28,0,0,0,3,0,2,0,2
 MAL lib,org.mal_lang.lib,Distributions.EasyAndUncertain,14,0,0,0,4,0,4,0,4,0
 MAL lib,org.mal_lang.lib,AST.UnaryExpr,0,7,0,0,0,3,0,1,0,1
 MAL lib,org.mal_lang.lib,AST.TTCSubExpr,0,28,0,0,0,3,0,2,0,2
-MAL lib,org.mal_lang.lib,AST.IntersectionExpr,22,6,0,0,2,2,1,1,1,1
 MAL lib,org.mal_lang.lib,AST.TransitiveExpr,0,21,0,0,0,3,0,2,0,2
+MAL lib,org.mal_lang.lib,AST.IntersectionExpr,22,6,0,0,2,2,1,1,1,1
 MAL lib,org.mal_lang.lib,Distributions.Zero,7,0,0,0,3,0,3,0,3,0
 MAL lib,org.mal_lang.lib,AST.Requires,0,62,0,0,0,9,0,2,0,2
 MAL lib,org.mal_lang.lib,Scope,45,81,5,9,6,24,4,12,1,8
@@ -58,8 +58,8 @@ MAL lib,org.mal_lang.lib,AST.StepExpr,0,28,0,0,0,3,0,2,0,2
 MAL lib,org.mal_lang.lib,MalLogger,61,126,3,5,14,34,9,12,6,11
 MAL lib,org.mal_lang.lib,MalLogger.MalFormatter,23,60,6,1,10,10,5,2,0,2
 MAL lib,org.mal_lang.lib,AST.UnionExpr,0,28,0,0,0,3,0,2,0,2
-MAL lib,org.mal_lang.lib,AST.CIA,27,34,4,0,6,4,3,1,1,1
 MAL lib,org.mal_lang.lib,AST.Variable,4,105,1,3,1,14,1,4,0,3
+MAL lib,org.mal_lang.lib,AST.CIA,27,34,4,0,6,4,3,1,1,1
 MAL lib,org.mal_lang.lib,AST.TTCExpr,0,4,0,0,0,2,0,1,0,1
 MAL lib,org.mal_lang.lib,AST.TTCBinaryExpr,0,10,0,0,0,4,0,1,0,1
 MAL lib,org.mal_lang.lib,LangConverter,172,963,29,104,25,196,24,63,3,13
