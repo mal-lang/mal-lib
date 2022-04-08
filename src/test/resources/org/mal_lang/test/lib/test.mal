@@ -5,6 +5,11 @@ category Category1 {}
 
 category _Category2
   meta info: "line"
+  other info: """
+              {
+                "multiple": "lines"
+              }
+              """
 {
   abstract asset Asset1 {}
   abstract asset _Asset2 meta info: "line" {}
