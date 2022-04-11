@@ -35,47 +35,48 @@ package org.mal_lang.lib;
 <span class="fc" id="L35">  A(&quot;'A'&quot;),</span>
 
 <span class="fc" id="L37">  STRING(&quot;string literal&quot;),</span>
-<span class="fc" id="L38">  ID(&quot;identifier&quot;),</span>
-<span class="fc" id="L39">  INT(&quot;integer literal&quot;),</span>
-<span class="fc" id="L40">  FLOAT(&quot;floating point literal&quot;),</span>
-<span class="fc" id="L41">  HASH(&quot;'#'&quot;),</span>
-<span class="fc" id="L42">  COLON(&quot;':'&quot;),</span>
-<span class="fc" id="L43">  LCURLY(&quot;'{'&quot;),</span>
-<span class="fc" id="L44">  RCURLY(&quot;'}'&quot;),</span>
-<span class="fc" id="L45">  INHERIT(&quot;'+&gt;'&quot;),</span>
-<span class="fc" id="L46">  OVERRIDE(&quot;'-&gt;'&quot;),</span>
-<span class="fc" id="L47">  ALL(&quot;'&amp;'&quot;),</span>
-<span class="fc" id="L48">  ANY(&quot;'|'&quot;),</span>
-<span class="fc" id="L49">  NOTEXIST(&quot;'!E'&quot;),</span>
-<span class="fc" id="L50">  AT(&quot;'@'&quot;),</span>
-<span class="fc" id="L51">  LBRACKET(&quot;'['&quot;),</span>
-<span class="fc" id="L52">  RBRACKET(&quot;']'&quot;),</span>
-<span class="fc" id="L53">  LPAREN(&quot;'('&quot;),</span>
-<span class="fc" id="L54">  RPAREN(&quot;')'&quot;),</span>
-<span class="fc" id="L55">  COMMA(&quot;','&quot;),</span>
-<span class="fc" id="L56">  REQUIRE(&quot;'&lt;-'&quot;),</span>
-<span class="fc" id="L57">  ASSIGN(&quot;'='&quot;),</span>
-<span class="fc" id="L58">  UNION(&quot;'\\/'&quot;),</span>
-<span class="fc" id="L59">  INTERSECT(&quot;'/\\'&quot;),</span>
-<span class="fc" id="L60">  DOT(&quot;'.'&quot;),</span>
-<span class="fc" id="L61">  RANGE(&quot;'..'&quot;),</span>
-<span class="fc" id="L62">  STAR(&quot;'*'&quot;),</span>
-<span class="fc" id="L63">  PLUS(&quot;'+'&quot;),</span>
-<span class="fc" id="L64">  MINUS(&quot;'-'&quot;),</span>
-<span class="fc" id="L65">  DIVIDE(&quot;'/'&quot;),</span>
-<span class="fc" id="L66">  POWER(&quot;'^'&quot;),</span>
-<span class="fc" id="L67">  LARROW(&quot;'&lt;--'&quot;),</span>
-<span class="fc" id="L68">  RARROW(&quot;'--&gt;'&quot;);</span>
+<span class="fc" id="L38">  MULTI_STRING(&quot;multi-line string literal&quot;),</span>
+<span class="fc" id="L39">  ID(&quot;identifier&quot;),</span>
+<span class="fc" id="L40">  INT(&quot;integer literal&quot;),</span>
+<span class="fc" id="L41">  FLOAT(&quot;floating point literal&quot;),</span>
+<span class="fc" id="L42">  HASH(&quot;'#'&quot;),</span>
+<span class="fc" id="L43">  COLON(&quot;':'&quot;),</span>
+<span class="fc" id="L44">  LCURLY(&quot;'{'&quot;),</span>
+<span class="fc" id="L45">  RCURLY(&quot;'}'&quot;),</span>
+<span class="fc" id="L46">  INHERIT(&quot;'+&gt;'&quot;),</span>
+<span class="fc" id="L47">  OVERRIDE(&quot;'-&gt;'&quot;),</span>
+<span class="fc" id="L48">  ALL(&quot;'&amp;'&quot;),</span>
+<span class="fc" id="L49">  ANY(&quot;'|'&quot;),</span>
+<span class="fc" id="L50">  NOTEXIST(&quot;'!E'&quot;),</span>
+<span class="fc" id="L51">  AT(&quot;'@'&quot;),</span>
+<span class="fc" id="L52">  LBRACKET(&quot;'['&quot;),</span>
+<span class="fc" id="L53">  RBRACKET(&quot;']'&quot;),</span>
+<span class="fc" id="L54">  LPAREN(&quot;'('&quot;),</span>
+<span class="fc" id="L55">  RPAREN(&quot;')'&quot;),</span>
+<span class="fc" id="L56">  COMMA(&quot;','&quot;),</span>
+<span class="fc" id="L57">  REQUIRE(&quot;'&lt;-'&quot;),</span>
+<span class="fc" id="L58">  ASSIGN(&quot;'='&quot;),</span>
+<span class="fc" id="L59">  UNION(&quot;'\\/'&quot;),</span>
+<span class="fc" id="L60">  INTERSECT(&quot;'/\\'&quot;),</span>
+<span class="fc" id="L61">  DOT(&quot;'.'&quot;),</span>
+<span class="fc" id="L62">  RANGE(&quot;'..'&quot;),</span>
+<span class="fc" id="L63">  STAR(&quot;'*'&quot;),</span>
+<span class="fc" id="L64">  PLUS(&quot;'+'&quot;),</span>
+<span class="fc" id="L65">  MINUS(&quot;'-'&quot;),</span>
+<span class="fc" id="L66">  DIVIDE(&quot;'/'&quot;),</span>
+<span class="fc" id="L67">  POWER(&quot;'^'&quot;),</span>
+<span class="fc" id="L68">  LARROW(&quot;'&lt;--'&quot;),</span>
+<span class="fc" id="L69">  RARROW(&quot;'--&gt;'&quot;);</span>
 
   private final String string;
 
-<span class="fc" id="L72">  private TokenType(String string) {</span>
-<span class="fc" id="L73">    this.string = string;</span>
-<span class="fc" id="L74">  }</span>
+<span class="fc" id="L73">  private TokenType(String string) {</span>
+<span class="fc" id="L74">    this.string = string;</span>
+<span class="fc" id="L75">  }</span>
 
   @Override
   public String toString() {
-<span class="fc" id="L78">    return string;</span>
+<span class="fc" id="L79">    return string;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
