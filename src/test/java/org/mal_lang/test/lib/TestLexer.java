@@ -184,4 +184,42 @@ public class TestLexer extends MalTest {
         new Position("bad-unicode-2.txt", 1, 1),
         "Unexpected token 0xC3");
   }
+
+  @Test
+  public void testValidMultiLineStrings() {
+    Token[] tokens = {
+      new Token(TokenType.STRING, "multi-string-valid.txt", 1, 1, ""),
+      new Token(TokenType.STRING, "multi-string-valid.txt", 4, 4, ""),
+      new Token(TokenType.STRING, "multi-string-valid.txt", 7, 3, "abc\n"),
+      new Token(TokenType.STRING, "multi-string-valid.txt", 11, 3, "abc"),
+      new Token(TokenType.STRING, "multi-string-valid.txt", 14, 3, " abc\n"),
+      new Token(TokenType.STRING, "multi-string-valid.txt", 18, 3, "abc\n def\n"),
+      new Token(TokenType.EOF, "multi-string-valid.txt", 22, 1)
+    };
+    assertTokens(tokens, "lexer/multi-string-valid.txt");
+  }
+
+  @Test
+  public void testInvalidMultiLineString1() {
+    assertSyntaxError(
+        "lexer/multi-string-invalid-1.txt",
+        new Position("multi-string-invalid-1.txt", 1, 1),
+        "Expected line terminator");
+  }
+
+  @Test
+  public void testInvalidMultiLineString2() {
+    assertSyntaxError(
+        "lexer/multi-string-invalid-2.txt",
+        new Position("multi-string-invalid-2.txt", 1, 1),
+        "Expected line terminator");
+  }
+
+  @Test
+  public void testInvalidMultiLineString3() {
+    assertSyntaxError(
+        "lexer/multi-string-invalid-3.txt",
+        new Position("multi-string-invalid-3.txt", 3, 1),
+        "Unterminated multi-line string starting at <multi-string-invalid-3.txt:1:1>");
+  }
 }

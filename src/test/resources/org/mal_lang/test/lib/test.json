@@ -12,7 +12,8 @@
     {
       "name": "_Category2",
       "meta": {
-        "meta": "line"
+        "meta": "line",
+        "other": "{\n  \"multiple\": \"lines\"\n}\n"
       }
     },
     {
